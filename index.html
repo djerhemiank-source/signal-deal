@@ -26,14 +26,16 @@
 .free-gate-banner b{color:#68d5ff}.free-gate-banner .free-price{display:inline-block;margin-left:5px;color:#5be39d;font-weight:900}
 .free-preview-tag{border-color:#4a9dc2!important;color:#9fe3ff!important;background:#12304a!important;font-weight:850}
 .free-unlock-btn{background:#68d5ff!important;color:#04121c!important;border-color:#68d5ff!important;font-weight:900!important}
+.free-commercial-value{margin:9px 0;padding:10px 11px;border:1px solid #285747;background:#0d2822;border-radius:9px;font-size:11px;line-height:1.55;color:#c6efd9}
+.free-commercial-value b{color:#5be39d}
 </style>
 <script>
 (function(){
   function enhanceFreeView(){
     const badge=document.getElementById('planBadge');
     const isFree=badge && /Gratuit/i.test(badge.textContent||'');
-    const feed=document.getElementById('feed');
-    if(!feed) return;
+    const feedEl=document.getElementById('feed');
+    if(!feedEl) return;
 
     let banner=document.getElementById('freeGateBanner');
     if(isFree){
@@ -41,8 +43,8 @@
         banner=document.createElement('div');
         banner.id='freeGateBanner';
         banner.className='free-gate-banner';
-        banner.innerHTML='<b>APERÇU GRATUIT</b> — Signal Deal vous montre qu’une opportunité existe. <strong>L’entreprise, l’objet exact, la source officielle, le besoin et l’échéance sont verrouillés.</strong><span class="free-price">Déblocage dès 9,90 €/mois.</span>';
-        feed.parentNode.insertBefore(banner,feed);
+        banner.innerHTML='<b>APERÇU GRATUIT</b> — Vous voyez le type de besoin et son potentiel commercial. <strong>L’acheteur, l’objet exact, la source officielle, le besoin complet et l’échéance restent verrouillés.</strong><span class="free-price">Déblocage dès 9,90 €/mois.</span>';
+        feedEl.parentNode.insertBefore(banner,feedEl);
       }
 
       document.querySelectorAll('#feed .card').forEach(card=>{
@@ -50,25 +52,52 @@
         if(tagrow && !tagrow.querySelector('.free-preview-tag')){
           const t=document.createElement('span');t.className='tag free-preview-tag';t.textContent='APERÇU GRATUIT';tagrow.prepend(t);
         }
+
+        const signalBox=card.querySelector('.signal');
+        if(signalBox){
+          const label=signalBox.querySelector('b');
+          if(label) label.textContent='Besoin détecté :';
+          const oppId=(card.id||'').replace(/^card-/,'');
+          let opp=null;
+          try{opp=feed.find(x=>String(x.id)===oppId)}catch(e){}
+          if(opp?.signal && !card.querySelector('.free-commercial-value')){
+            const v=document.createElement('div');
+            v.className='free-commercial-value';
+            v.innerHTML='<b>Potentiel commercial</b><br>'+escapeHtml(opp.signal);
+            signalBox.insertAdjacentElement('afterend',v);
+          }
+        }
+
         card.querySelectorAll('button').forEach(btn=>{
           if((btn.textContent||'').includes('🔒 Source')){
-            btn.textContent='🔒 Voir l’entreprise et la source — 9,90 €';
+            btn.textContent='🔒 Voir l’acheteur, l’objet exact et la source — 9,90 €';
             btn.classList.add('primary','free-unlock-btn');
           }
         });
       });
 
-      const deal=document.querySelector('#dealDay .dealbox .actions');
-      if(deal && !deal.querySelector('.free-unlock-btn')){
+      const dealBox=document.querySelector('#dealDay .dealbox');
+      const dealActions=document.querySelector('#dealDay .dealbox .actions');
+      if(dealBox){
+        let top=null;
+        try{top=[...feed].sort((a,b)=>(b.score||0)-(a.score||0))[0]}catch(e){}
+        if(top?.signal && !dealBox.querySelector('.free-commercial-value')){
+          const v=document.createElement('div');
+          v.className='free-commercial-value';
+          v.innerHTML='<b>Pourquoi cette opportunité peut intéresser un commercial</b><br>'+escapeHtml(top.signal);
+          dealActions?.insertAdjacentElement('beforebegin',v);
+        }
+      }
+      if(dealActions && !dealActions.querySelector('.free-unlock-btn')){
         const b=document.createElement('button');
         b.className='primary free-unlock-btn';
-        b.textContent='🔒 Débloquer cette opportunité — 9,90 €';
+        b.textContent='🔒 Débloquer l’acheteur et la source — 9,90 €';
         b.onclick=()=>scrollToPricing();
-        deal.appendChild(b);
+        dealActions.appendChild(b);
       }
     }else{
       if(banner) banner.remove();
-      document.querySelectorAll('.free-preview-tag').forEach(x=>x.remove());
+      document.querySelectorAll('.free-preview-tag,.free-commercial-value').forEach(x=>x.remove());
     }
   }
   const obs=new MutationObserver(()=>enhanceFreeView());
