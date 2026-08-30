@@ -17,7 +17,8 @@
       .replace('https://buy.stripe.com/test_3cI3cw2B063G9dJ0pL18c01','https://buy.stripe.com/00w28tbhe58W3iRgpY6Zy01')
       .replace('https://buy.stripe.com/test_3cI9AUb7w4ZCblRb4p18c02','https://buy.stripe.com/6oU28tcli44SaLjgpY6Zy02')
       .replace('Les paiements sont actuellement en environnement Stripe de test : aucun argent réel n’est prélevé.','Paiements réels sécurisés par Stripe. Les abonnements sont renouvelés automatiquement jusqu’à résiliation.')
-      .replace('Paiement test validé par Stripe. Activation de votre formule en cours…','Paiement validé par Stripe. Activation de votre formule en cours…');
+      .replace('Paiement test validé par Stripe. Activation de votre formule en cours…','Paiement validé par Stripe. Activation de votre formule en cours…')
+      .replace("client.from('subscriptions').select('plan,status').eq('user_id',session.user.id).maybeSingle()","client.from('subscriptions').select('plan,status').eq('user_id',session.user.id).eq('livemode',true).maybeSingle()");
     document.open();document.write(html);document.close();
   }catch(e){
     document.getElementById('loading').textContent='Impossible de charger Signal Deal. Actualisez la page dans quelques instants.';
