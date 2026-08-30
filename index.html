@@ -19,6 +19,65 @@
       .replace('Les paiements sont actuellement en environnement Stripe de test : aucun argent réel n’est prélevé.','Paiements réels sécurisés par Stripe. Les abonnements sont renouvelés automatiquement jusqu’à résiliation.')
       .replace('Paiement test validé par Stripe. Activation de votre formule en cours…','Paiement validé par Stripe. Activation de votre formule en cours…')
       .replace("client.from('subscriptions').select('plan,status').eq('user_id',session.user.id).maybeSingle()","client.from('subscriptions').select('plan,status').eq('user_id',session.user.id).eq('livemode',true).maybeSingle()");
+
+    const teaserPatch = String.raw`
+<style>
+.free-gate-banner{margin:0 0 14px;padding:14px 16px;border:1px solid #315f7d;background:linear-gradient(135deg,#10283d,#0b1d31);border-radius:13px;font-size:12px;line-height:1.55;color:#d9ecff}
+.free-gate-banner b{color:#68d5ff}.free-gate-banner .free-price{display:inline-block;margin-left:5px;color:#5be39d;font-weight:900}
+.free-preview-tag{border-color:#4a9dc2!important;color:#9fe3ff!important;background:#12304a!important;font-weight:850}
+.free-unlock-btn{background:#68d5ff!important;color:#04121c!important;border-color:#68d5ff!important;font-weight:900!important}
+</style>
+<script>
+(function(){
+  function enhanceFreeView(){
+    const badge=document.getElementById('planBadge');
+    const isFree=badge && /Gratuit/i.test(badge.textContent||'');
+    const feed=document.getElementById('feed');
+    if(!feed) return;
+
+    let banner=document.getElementById('freeGateBanner');
+    if(isFree){
+      if(!banner){
+        banner=document.createElement('div');
+        banner.id='freeGateBanner';
+        banner.className='free-gate-banner';
+        banner.innerHTML='<b>APERÇU GRATUIT</b> — Signal Deal vous montre qu’une opportunité existe. <strong>L’entreprise, l’objet exact, la source officielle, le besoin et l’échéance sont verrouillés.</strong><span class="free-price">Déblocage dès 9,90 €/mois.</span>';
+        feed.parentNode.insertBefore(banner,feed);
+      }
+
+      document.querySelectorAll('#feed .card').forEach(card=>{
+        const tagrow=card.querySelector('.tagrow');
+        if(tagrow && !tagrow.querySelector('.free-preview-tag')){
+          const t=document.createElement('span');t.className='tag free-preview-tag';t.textContent='APERÇU GRATUIT';tagrow.prepend(t);
+        }
+        card.querySelectorAll('button').forEach(btn=>{
+          if((btn.textContent||'').includes('🔒 Source')){
+            btn.textContent='🔒 Voir l’entreprise et la source — 9,90 €';
+            btn.classList.add('primary','free-unlock-btn');
+          }
+        });
+      });
+
+      const deal=document.querySelector('#dealDay .dealbox .actions');
+      if(deal && !deal.querySelector('.free-unlock-btn')){
+        const b=document.createElement('button');
+        b.className='primary free-unlock-btn';
+        b.textContent='🔒 Débloquer cette opportunité — 9,90 €';
+        b.onclick=()=>scrollToPricing();
+        deal.appendChild(b);
+      }
+    }else{
+      if(banner) banner.remove();
+      document.querySelectorAll('.free-preview-tag').forEach(x=>x.remove());
+    }
+  }
+  const obs=new MutationObserver(()=>enhanceFreeView());
+  obs.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+  setInterval(enhanceFreeView,1000);
+  setTimeout(enhanceFreeView,300);
+})();
+<\/script>`;
+    html=html.replace('</body>',teaserPatch+'\n</body>');
     document.open();document.write(html);document.close();
   }catch(e){
     document.getElementById('loading').textContent='Impossible de charger Signal Deal. Actualisez la page dans quelques instants.';
