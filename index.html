@@ -106,7 +106,104 @@
   setTimeout(enhanceFreeView,300);
 })();
 <\/script>`;
-    html=html.replace('</body>',teaserPatch+'\n</body>');
+
+    const geoPatch = String.raw`
+<style>
+.geo-box{margin:14px 0;padding:13px 15px;border:1px solid #31567b;background:#0d1d34;border-radius:13px;font-size:11px;line-height:1.55;color:#cbdaf0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.geo-box strong{color:#9fe3ff}.geo-box .geo-note{color:#8299bc;font-size:10px}.geo-btn{border:1px solid #4a9dc2;background:#143b50;color:#bdeaff;padding:9px 12px;border-radius:9px;font-weight:800;cursor:pointer}.geo-btn.active{background:#15382a;border-color:#2e684f;color:#b5f1d1}
+</style>
+<script>
+(function(){
+  const REGION_NAMES={'11':'Île-de-France','24':'Centre-Val de Loire','27':'Bourgogne-Franche-Comté','28':'Normandie','32':'Hauts-de-France','44':'Grand Est','52':'Pays de la Loire','53':'Bretagne','75':'Nouvelle-Aquitaine','76':'Occitanie','84':'Auvergne-Rhône-Alpes','93':'Provence-Alpes-Côte d’Azur','94':'Corse','01':'Guadeloupe','02':'Martinique','03':'Guyane','04':'La Réunion','06':'Mayotte'};
+  let geoProfile=null;
+  let geoInitForUser='';
+  const originalLoadFeed=window.loadFeed;
+
+  function ensureGeoBox(){
+    const dash=document.getElementById('dashboard');
+    const head=dash?.querySelector('.dashhead');
+    if(!dash||!head)return null;
+    let box=document.getElementById('geoBox');
+    if(!box){
+      box=document.createElement('div');box.id='geoBox';box.className='geo-box';
+      head.insertAdjacentElement('afterend',box);
+    }
+    return box;
+  }
+
+  function renderGeoBox(message,active=false){
+    const box=ensureGeoBox();if(!box)return;
+    box.innerHTML='<div><strong>📍 Opportunités près de vous</strong><br>'+message+'<div class="geo-note">Signal Deal ne conserve pas vos coordonnées GPS : uniquement votre département et votre région.</div></div><button class="geo-btn '+(active?'active':'')+'" onclick="signalDealUseLocation()">'+(active?'Actualiser ma zone':'Utiliser ma position')+'</button>';
+  }
+
+  async function getProfileZone(){
+    if(!session?.user?.id)return null;
+    const {data}=await client.from('profiles').select('department,region').eq('id',session.user.id).maybeSingle();
+    return data||null;
+  }
+
+  async function resolveZone(lat,lon){
+    const url='https://geo.api.gouv.fr/communes?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&fields=nom,codeDepartement,codeRegion&format=json';
+    const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Localisation administrative indisponible');
+    const rows=await r.json();const c=Array.isArray(rows)?rows[0]:null;if(!c)throw new Error('Commune introuvable');
+    return {department:c.codeDepartement||null,region:REGION_NAMES[c.codeRegion]||null,city:c.nom||null};
+  }
+
+  window.signalDealUseLocation=function(){
+    if(!navigator.geolocation){renderGeoBox('La géolocalisation n’est pas disponible sur ce navigateur.');return;}
+    renderGeoBox('Autorisez votre navigateur à déterminer votre zone commerciale…');
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      try{
+        const zone=await resolveZone(pos.coords.latitude,pos.coords.longitude);
+        if(!zone.region)throw new Error('Région non reconnue');
+        const {error}=await client.from('profiles').update({department:zone.department,region:zone.region,location_updated_at:new Date().toISOString()}).eq('id',session.user.id);
+        if(error)throw error;
+        geoProfile={department:zone.department,region:zone.region};
+        const regionSelect=document.getElementById('region');if(regionSelect)regionSelect.value='';
+        renderGeoBox('Zone détectée : <b>'+escapeHtml(zone.region)+'</b>'+(zone.department?' · département '+escapeHtml(zone.department):'')+'. Les opportunités les plus proches passent en premier.',true);
+        await window.loadFeed();
+      }catch(e){renderGeoBox('Impossible de déterminer votre zone. Vous pouvez toujours choisir une région dans le filtre.');}
+    },()=>renderGeoBox('Position refusée. Aucun problème : choisissez simplement votre région dans le filtre.'),{enableHighAccuracy:false,timeout:10000,maximumAge:86400000});
+  };
+
+  window.loadFeed=async function(){
+    if(!session)return;
+    const regionSelect=document.getElementById('region');
+    const chosen=regionSelect?.value||'';
+    if(chosen || !geoProfile?.region){return originalLoadFeed();}
+    const min=Number(document.getElementById('minScore')?.value||0);
+    const {data,error}=await client.rpc('get_local_opportunity_feed',{p_limit:500,p_min_score:min});
+    if(error){document.getElementById('feed').innerHTML='<div class="empty">Erreur : '+escapeHtml(error.message)+'</div>';return;}
+    feed=data||[];renderFeed();renderDealDay();updateStats();
+    const localCount=feed.filter(x=>x.region===geoProfile.region).length;
+    const box=ensureGeoBox();
+    if(box){
+      const extra=Math.max(0,Math.min(5,feed.length)-Math.min(5,localCount));
+      const detail=localCount>=5?'Au moins 5 opportunités correspondent à votre région.':Math.min(5,localCount)+' dans votre région'+(extra?' + '+extra+' élargie'+(extra>1?'s':'')+' automatiquement pour atteindre 5.':'');
+      renderGeoBox('Zone : <b>'+escapeHtml(geoProfile.region)+'</b>'+(geoProfile.department?' · département '+escapeHtml(geoProfile.department):'')+'. '+detail,true);
+    }
+  };
+
+  async function initGeo(){
+    if(!session?.user?.id)return;
+    if(geoInitForUser===session.user.id)return;
+    geoInitForUser=session.user.id;
+    geoProfile=await getProfileZone();
+    if(geoProfile?.region){
+      renderGeoBox('Zone enregistrée : <b>'+escapeHtml(geoProfile.region)+'</b>'+(geoProfile.department?' · département '+escapeHtml(geoProfile.department):'')+'. Le radar priorise automatiquement les opportunités proches.',true);
+      const regionSelect=document.getElementById('region');if(regionSelect&&!regionSelect.value)await window.loadFeed();
+    }else{
+      renderGeoBox('Activez votre position pour que le radar trouve en priorité <b>5 opportunités commerciales autour de vous</b>.');
+    }
+  }
+
+  const watcher=new MutationObserver(()=>{if(session?.user?.id&&document.getElementById('dashboard')?.classList.contains('show'))initGeo();});
+  watcher.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+  setInterval(()=>{if(session?.user?.id)initGeo()},1200);
+})();
+<\/script>`;
+
+    html=html.replace('</body>',teaserPatch+'\n'+geoPatch+'\n</body>');
     document.open();document.write(html);document.close();
   }catch(e){
     document.getElementById('loading').textContent='Impossible de charger Signal Deal. Actualisez la page dans quelques instants.';
