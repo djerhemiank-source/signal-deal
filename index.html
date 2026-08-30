@@ -15,6 +15,7 @@
     html=html
       .replace('https://buy.stripe.com/test_7sYdRaejI1NqblR8Wh18c00','https://buy.stripe.com/dRm3cx1GE1WK6v30r06Zy00')
       .replace('https://buy.stripe.com/test_3cI3cw2B063G9dJ0pL18c01','https://buy.stripe.com/00w28tbhe58W3iRgpY6Zy01')
+      .replace('https://buy.stripe.com/test_3cI9AUb7w4ZCblRb4p18c00','https://buy.stripe.com/6oU28tcli44SaLjgpY6Zy02')
       .replace('https://buy.stripe.com/test_3cI9AUb7w4ZCblRb4p18c02','https://buy.stripe.com/6oU28tcli44SaLjgpY6Zy02')
       .replace('Les paiements sont actuellement en environnement Stripe de test : aucun argent réel n’est prélevé.','Paiements réels sécurisés par Stripe. Les abonnements sont renouvelés automatiquement jusqu’à résiliation.')
       .replace('Paiement test validé par Stripe. Activation de votre formule en cours…','Paiement validé par Stripe. Activation de votre formule en cours…')
@@ -36,174 +37,71 @@
     const isFree=badge && /Gratuit/i.test(badge.textContent||'');
     const feedEl=document.getElementById('feed');
     if(!feedEl) return;
-
     let banner=document.getElementById('freeGateBanner');
     if(isFree){
       if(!banner){
-        banner=document.createElement('div');
-        banner.id='freeGateBanner';
-        banner.className='free-gate-banner';
+        banner=document.createElement('div');banner.id='freeGateBanner';banner.className='free-gate-banner';
         banner.innerHTML='<b>APERÇU GRATUIT</b> — Vous voyez le type de besoin et son potentiel commercial. <strong>L’acheteur, l’objet exact, la source officielle, le besoin complet et l’échéance restent verrouillés.</strong><span class="free-price">Déblocage dès 9,90 €/mois.</span>';
         feedEl.parentNode.insertBefore(banner,feedEl);
       }
-
       document.querySelectorAll('#feed .card').forEach(card=>{
         const tagrow=card.querySelector('.tagrow');
-        if(tagrow && !tagrow.querySelector('.free-preview-tag')){
-          const t=document.createElement('span');t.className='tag free-preview-tag';t.textContent='APERÇU GRATUIT';tagrow.prepend(t);
-        }
-
+        if(tagrow && !tagrow.querySelector('.free-preview-tag')){const t=document.createElement('span');t.className='tag free-preview-tag';t.textContent='APERÇU GRATUIT';tagrow.prepend(t)}
         const signalBox=card.querySelector('.signal');
         if(signalBox){
-          const label=signalBox.querySelector('b');
-          if(label) label.textContent='Besoin détecté :';
-          const oppId=(card.id||'').replace(/^card-/,'');
-          let opp=null;
-          try{opp=feed.find(x=>String(x.id)===oppId)}catch(e){}
-          if(opp?.signal && !card.querySelector('.free-commercial-value')){
-            const v=document.createElement('div');
-            v.className='free-commercial-value';
-            v.innerHTML='<b>Potentiel commercial</b><br>'+escapeHtml(opp.signal);
-            signalBox.insertAdjacentElement('afterend',v);
-          }
+          const label=signalBox.querySelector('b');if(label)label.textContent='Besoin détecté :';
+          const oppId=(card.id||'').replace(/^card-/,'');let opp=null;try{opp=feed.find(x=>String(x.id)===oppId)}catch(e){}
+          if(opp?.signal&&!card.querySelector('.free-commercial-value')){const v=document.createElement('div');v.className='free-commercial-value';v.innerHTML='<b>Potentiel commercial</b><br>'+escapeHtml(opp.signal);signalBox.insertAdjacentElement('afterend',v)}
         }
-
-        card.querySelectorAll('button').forEach(btn=>{
-          if((btn.textContent||'').includes('🔒 Source')){
-            btn.textContent='🔒 Voir l’acheteur, l’objet exact et la source — 9,90 €';
-            btn.classList.add('primary','free-unlock-btn');
-          }
-        });
+        card.querySelectorAll('button').forEach(btn=>{if((btn.textContent||'').includes('🔒 Source')){btn.textContent='🔒 Voir l’acheteur, l’objet exact et la source — 9,90 €';btn.classList.add('primary','free-unlock-btn')}})
       });
-
-      const dealBox=document.querySelector('#dealDay .dealbox');
-      const dealActions=document.querySelector('#dealDay .dealbox .actions');
-      if(dealBox){
-        let top=null;
-        try{top=[...feed].sort((a,b)=>(b.score||0)-(a.score||0))[0]}catch(e){}
-        if(top?.signal && !dealBox.querySelector('.free-commercial-value')){
-          const v=document.createElement('div');
-          v.className='free-commercial-value';
-          v.innerHTML='<b>Pourquoi cette opportunité peut intéresser un commercial</b><br>'+escapeHtml(top.signal);
-          dealActions?.insertAdjacentElement('beforebegin',v);
-        }
-      }
-      if(dealActions && !dealActions.querySelector('.free-unlock-btn')){
-        const b=document.createElement('button');
-        b.className='primary free-unlock-btn';
-        b.textContent='🔒 Débloquer l’acheteur et la source — 9,90 €';
-        b.onclick=()=>scrollToPricing();
-        dealActions.appendChild(b);
-      }
-    }else{
-      if(banner) banner.remove();
-      document.querySelectorAll('.free-preview-tag,.free-commercial-value').forEach(x=>x.remove());
-    }
+      const dealBox=document.querySelector('#dealDay .dealbox'),dealActions=document.querySelector('#dealDay .dealbox .actions');
+      if(dealBox){let top=null;try{top=[...feed].sort((a,b)=>(b.score||0)-(a.score||0))[0]}catch(e){}if(top?.signal&&!dealBox.querySelector('.free-commercial-value')){const v=document.createElement('div');v.className='free-commercial-value';v.innerHTML='<b>Pourquoi cette opportunité peut intéresser un commercial</b><br>'+escapeHtml(top.signal);dealActions?.insertAdjacentElement('beforebegin',v)}}
+      if(dealActions&&!dealActions.querySelector('.free-unlock-btn')){const b=document.createElement('button');b.className='primary free-unlock-btn';b.textContent='🔒 Débloquer l’acheteur et la source — 9,90 €';b.onclick=()=>scrollToPricing();dealActions.appendChild(b)}
+    }else{if(banner)banner.remove();document.querySelectorAll('.free-preview-tag,.free-commercial-value').forEach(x=>x.remove())}
   }
-  const obs=new MutationObserver(()=>enhanceFreeView());
-  obs.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
-  setInterval(enhanceFreeView,1000);
-  setTimeout(enhanceFreeView,300);
+  const obs=new MutationObserver(()=>enhanceFreeView());obs.observe(document.documentElement,{subtree:true,childList:true,characterData:true});setInterval(enhanceFreeView,1000);setTimeout(enhanceFreeView,300)
 })();
 <\/script>`;
 
     const geoPatch = String.raw`
 <style>
-.geo-box{margin:14px 0;padding:13px 15px;border:1px solid #31567b;background:#0d1d34;border-radius:13px;font-size:11px;line-height:1.55;color:#cbdaf0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.geo-box strong{color:#9fe3ff}.geo-box .geo-note{color:#8299bc;font-size:10px}.geo-btn{border:1px solid #4a9dc2;background:#143b50;color:#bdeaff;padding:9px 12px;border-radius:9px;font-weight:800;cursor:pointer}.geo-btn.active{background:#15382a;border-color:#2e684f;color:#b5f1d1}
+.geo-box{margin:14px 0;padding:13px 15px;border:1px solid #31567b;background:#0d1d34;border-radius:13px;font-size:11px;line-height:1.55;color:#cbdaf0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.geo-box strong{color:#9fe3ff}.geo-box .geo-note{color:#8299bc;font-size:10px}.geo-btn{border:1px solid #4a9dc2;background:#143b50;color:#bdeaff;padding:9px 12px;border-radius:9px;font-weight:800;cursor:pointer}.geo-btn.active{background:#15382a;border-color:#2e684f;color:#b5f1d1}
 </style>
 <script>
 (function(){
   const REGION_NAMES={'11':'Île-de-France','24':'Centre-Val de Loire','27':'Bourgogne-Franche-Comté','28':'Normandie','32':'Hauts-de-France','44':'Grand Est','52':'Pays de la Loire','53':'Bretagne','75':'Nouvelle-Aquitaine','76':'Occitanie','84':'Auvergne-Rhône-Alpes','93':'Provence-Alpes-Côte d’Azur','94':'Corse','01':'Guadeloupe','02':'Martinique','03':'Guyane','04':'La Réunion','06':'Mayotte'};
-  let geoProfile=null;
-  let geoInitForUser='';
-  const originalLoadFeed=window.loadFeed;
-
-  function ensureGeoBox(){
-    const dash=document.getElementById('dashboard');
-    const head=dash?.querySelector('.dashhead');
-    if(!dash||!head)return null;
-    let box=document.getElementById('geoBox');
-    if(!box){
-      box=document.createElement('div');box.id='geoBox';box.className='geo-box';
-      head.insertAdjacentElement('afterend',box);
-    }
-    return box;
-  }
-
-  function renderGeoBox(message,active=false){
-    const box=ensureGeoBox();if(!box)return;
-    box.innerHTML='<div><strong>📍 Opportunités près de vous</strong><br>'+message+'<div class="geo-note">Signal Deal ne conserve pas vos coordonnées GPS : uniquement votre département et votre région.</div></div><button class="geo-btn '+(active?'active':'')+'" onclick="signalDealUseLocation()">'+(active?'Actualiser ma zone':'Utiliser ma position')+'</button>';
-  }
-
-  async function getProfileZone(){
-    if(!session?.user?.id)return null;
-    const {data}=await client.from('profiles').select('department,region').eq('id',session.user.id).maybeSingle();
-    return data||null;
-  }
-
-  async function resolveZone(lat,lon){
-    const url='https://geo.api.gouv.fr/communes?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&fields=nom,codeDepartement,codeRegion&format=json';
-    const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Localisation administrative indisponible');
-    const rows=await r.json();const c=Array.isArray(rows)?rows[0]:null;if(!c)throw new Error('Commune introuvable');
-    return {department:c.codeDepartement||null,region:REGION_NAMES[c.codeRegion]||null,city:c.nom||null};
-  }
-
-  window.signalDealUseLocation=function(){
-    if(!navigator.geolocation){renderGeoBox('La géolocalisation n’est pas disponible sur ce navigateur.');return;}
-    renderGeoBox('Autorisez votre navigateur à déterminer votre zone commerciale…');
-    navigator.geolocation.getCurrentPosition(async pos=>{
-      try{
-        const zone=await resolveZone(pos.coords.latitude,pos.coords.longitude);
-        if(!zone.region)throw new Error('Région non reconnue');
-        const {error}=await client.from('profiles').update({department:zone.department,region:zone.region,location_updated_at:new Date().toISOString()}).eq('id',session.user.id);
-        if(error)throw error;
-        geoProfile={department:zone.department,region:zone.region};
-        const regionSelect=document.getElementById('region');if(regionSelect)regionSelect.value='';
-        renderGeoBox('Zone détectée : <b>'+escapeHtml(zone.region)+'</b>'+(zone.department?' · département '+escapeHtml(zone.department):'')+'. Les opportunités les plus proches passent en premier.',true);
-        await window.loadFeed();
-      }catch(e){renderGeoBox('Impossible de déterminer votre zone. Vous pouvez toujours choisir une région dans le filtre.');}
-    },()=>renderGeoBox('Position refusée. Aucun problème : choisissez simplement votre région dans le filtre.'),{enableHighAccuracy:false,timeout:10000,maximumAge:86400000});
-  };
-
-  window.loadFeed=async function(){
-    if(!session)return;
-    const regionSelect=document.getElementById('region');
-    const chosen=regionSelect?.value||'';
-    if(chosen || !geoProfile?.region){return originalLoadFeed();}
-    const min=Number(document.getElementById('minScore')?.value||0);
-    const {data,error}=await client.rpc('get_local_opportunity_feed',{p_limit:500,p_min_score:min});
-    if(error){document.getElementById('feed').innerHTML='<div class="empty">Erreur : '+escapeHtml(error.message)+'</div>';return;}
-    feed=data||[];renderFeed();renderDealDay();updateStats();
-    const localCount=feed.filter(x=>x.region===geoProfile.region).length;
-    const box=ensureGeoBox();
-    if(box){
-      const extra=Math.max(0,Math.min(5,feed.length)-Math.min(5,localCount));
-      const detail=localCount>=5?'Au moins 5 opportunités correspondent à votre région.':Math.min(5,localCount)+' dans votre région'+(extra?' + '+extra+' élargie'+(extra>1?'s':'')+' automatiquement pour atteindre 5.':'');
-      renderGeoBox('Zone : <b>'+escapeHtml(geoProfile.region)+'</b>'+(geoProfile.department?' · département '+escapeHtml(geoProfile.department):'')+'. '+detail,true);
-    }
-  };
-
-  async function initGeo(){
-    if(!session?.user?.id)return;
-    if(geoInitForUser===session.user.id)return;
-    geoInitForUser=session.user.id;
-    geoProfile=await getProfileZone();
-    if(geoProfile?.region){
-      renderGeoBox('Zone enregistrée : <b>'+escapeHtml(geoProfile.region)+'</b>'+(geoProfile.department?' · département '+escapeHtml(geoProfile.department):'')+'. Le radar priorise automatiquement les opportunités proches.',true);
-      const regionSelect=document.getElementById('region');if(regionSelect&&!regionSelect.value)await window.loadFeed();
-    }else{
-      renderGeoBox('Activez votre position pour que le radar trouve en priorité <b>5 opportunités commerciales autour de vous</b>.');
-    }
-  }
-
-  const watcher=new MutationObserver(()=>{if(session?.user?.id&&document.getElementById('dashboard')?.classList.contains('show'))initGeo();});
-  watcher.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
-  setInterval(()=>{if(session?.user?.id)initGeo()},1200);
+  window.signalDealGeoProfile=null;let geoInitForUser='';const originalLoadFeed=window.loadFeed;
+  function ensureGeoBox(){const dash=document.getElementById('dashboard'),head=dash?.querySelector('.dashhead');if(!dash||!head)return null;let box=document.getElementById('geoBox');if(!box){box=document.createElement('div');box.id='geoBox';box.className='geo-box';head.insertAdjacentElement('afterend',box)}return box}
+  function renderGeoBox(message,active=false){const box=ensureGeoBox();if(!box)return;box.innerHTML='<div><strong>📍 Opportunités près de vous</strong><br>'+message+'<div class="geo-note">Signal Deal ne conserve pas vos coordonnées GPS : uniquement votre département et votre région.</div></div><button class="geo-btn '+(active?'active':'')+'" onclick="signalDealUseLocation()">'+(active?'Actualiser ma zone':'Utiliser ma position')+'</button>'}
+  async function getProfileZone(){if(!session?.user?.id)return null;const {data}=await client.from('profiles').select('department,region').eq('id',session.user.id).maybeSingle();return data||null}
+  async function resolveZone(lat,lon){const url='https://geo.api.gouv.fr/communes?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&fields=nom,codeDepartement,codeRegion&format=json';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Localisation administrative indisponible');const rows=await r.json(),c=Array.isArray(rows)?rows[0]:null;if(!c)throw new Error('Commune introuvable');return{department:c.codeDepartement||null,region:REGION_NAMES[c.codeRegion]||null,city:c.nom||null}}
+  window.signalDealUseLocation=function(){if(!navigator.geolocation){renderGeoBox('La géolocalisation n’est pas disponible sur ce navigateur.');return}renderGeoBox('Autorisez votre navigateur à déterminer votre zone commerciale…');navigator.geolocation.getCurrentPosition(async pos=>{try{const zone=await resolveZone(pos.coords.latitude,pos.coords.longitude);if(!zone.region)throw new Error('Région non reconnue');const {error}=await client.from('profiles').update({department:zone.department,region:zone.region,location_updated_at:new Date().toISOString()}).eq('id',session.user.id);if(error)throw error;window.signalDealGeoProfile={department:zone.department,region:zone.region};const regionSelect=document.getElementById('region');if(regionSelect)regionSelect.value='';renderGeoBox('Zone détectée : <b>'+escapeHtml(zone.region)+'</b>'+(zone.department?' · département '+escapeHtml(zone.department):'')+'. Les opportunités les plus proches passent en premier.',true);await window.loadFeed()}catch(e){renderGeoBox('Impossible de déterminer votre zone. Vous pouvez toujours choisir une région dans le filtre.')}},()=>renderGeoBox('Position refusée. Aucun problème : choisissez simplement votre région dans le filtre.'),{enableHighAccuracy:false,timeout:10000,maximumAge:86400000})};
+  window.loadFeed=async function(){if(!session)return;const regionSelect=document.getElementById('region'),chosen=regionSelect?.value||'';if(chosen||!window.signalDealGeoProfile?.region)return originalLoadFeed();const min=Number(document.getElementById('minScore')?.value||0);const {data,error}=await client.rpc('get_local_opportunity_feed',{p_limit:500,p_min_score:min});if(error){document.getElementById('feed').innerHTML='<div class="empty">Erreur : '+escapeHtml(error.message)+'</div>';return}feed=data||[];renderFeed();renderDealDay();updateStats();const localCount=feed.filter(x=>x.region===window.signalDealGeoProfile.region).length;const box=ensureGeoBox();if(box){const extra=Math.max(0,Math.min(5,feed.length)-Math.min(5,localCount));const detail=localCount>=5?'Au moins 5 opportunités correspondent à votre région.':Math.min(5,localCount)+' dans votre région'+(extra?' + '+extra+' élargie'+(extra>1?'s':'')+' automatiquement pour atteindre 5.':'');renderGeoBox('Zone : <b>'+escapeHtml(window.signalDealGeoProfile.region)+'</b>'+(window.signalDealGeoProfile.department?' · département '+escapeHtml(window.signalDealGeoProfile.department):'')+'. '+detail,true)}};
+  async function initGeo(){if(!session?.user?.id||geoInitForUser===session.user.id)return;geoInitForUser=session.user.id;window.signalDealGeoProfile=await getProfileZone();if(window.signalDealGeoProfile?.region){renderGeoBox('Zone enregistrée : <b>'+escapeHtml(window.signalDealGeoProfile.region)+'</b>'+(window.signalDealGeoProfile.department?' · département '+escapeHtml(window.signalDealGeoProfile.department):'')+'. Le radar priorise automatiquement les opportunités proches.',true);const regionSelect=document.getElementById('region');if(regionSelect&&!regionSelect.value)await window.loadFeed()}else renderGeoBox('Activez votre position pour que le radar trouve en priorité <b>5 opportunités commerciales autour de vous</b>.')}
+  const watcher=new MutationObserver(()=>{if(session?.user?.id&&document.getElementById('dashboard')?.classList.contains('show'))initGeo()});watcher.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});setInterval(()=>{if(session?.user?.id)initGeo()},1200)
 })();
 <\/script>`;
 
-    html=html.replace('</body>',teaserPatch+'\n'+geoPatch+'\n</body>');
+    const specialtyPatch = String.raw`
+<style>
+.biz-box{margin:14px 0;padding:14px 15px;border:1px solid #3d4e74;background:#101a31;border-radius:13px;color:#cfdaee;font-size:11px;line-height:1.5}.biz-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.biz-head strong{color:#ddd6ff;font-size:12px}.biz-chips{display:flex;gap:7px;flex-wrap:wrap;margin:11px 0}.biz-chip{display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #34496d;background:#0b172d;border-radius:999px;cursor:pointer}.biz-chip input{width:auto;margin:0}.biz-save{border:1px solid #665aa0;background:#211b43;color:#e5deff;padding:9px 12px;border-radius:9px;font-weight:800;cursor:pointer}.biz-note{color:#8299bc;font-size:10px}.biz-status{color:#5be39d;font-size:10px;margin-left:8px}
+</style>
+<script>
+(function(){
+  const SPECS=[
+    ['cybersecurity','Cybersécurité'],['cloud','Cloud / infogérance'],['software_erp_crm','Logiciels / ERP / CRM'],['data_ai','Data / IA'],['network_telecom','Réseaux / télécoms'],['hardware_it','Matériel IT'],['digital_av','Audiovisuel numérique']
+  ];
+  let initUser='';
+  function ensureBizBox(){const geo=document.getElementById('geoBox'),dash=document.getElementById('dashboard'),head=dash?.querySelector('.dashhead');if(!dash||!head)return null;let box=document.getElementById('bizBox');if(!box){box=document.createElement('div');box.id='bizBox';box.className='biz-box';if(geo)geo.insertAdjacentElement('afterend',box);else head.insertAdjacentElement('afterend',box)}return box}
+  function renderBiz(selected=[]){const box=ensureBizBox();if(!box)return;const set=new Set(selected||[]);box.innerHTML='<div class="biz-head"><div><strong>🎯 Ce que je vends</strong><span id="bizStatus" class="biz-status"></span><div class="biz-note">Choisissez vos activités : Signal Deal fera remonter en premier les opportunités proches qui correspondent à votre métier.</div></div><button class="biz-save" onclick="signalDealSaveBusiness()">Enregistrer mes activités</button></div><div class="biz-chips">'+SPECS.map(([v,l])=>'<label class="biz-chip"><input type="checkbox" name="signalDealSpec" value="'+v+'" '+(set.has(v)?'checked':'')+'> '+l+'</label>').join('')+'</div>'}
+  window.signalDealSaveBusiness=async function(){if(!session?.user?.id)return;const values=[...document.querySelectorAll('input[name="signalDealSpec"]:checked')].map(x=>x.value);const status=document.getElementById('bizStatus');if(status)status.textContent='Enregistrement…';const {error}=await client.from('profiles').update({commercial_specialties:values}).eq('id',session.user.id);if(error){if(status)status.textContent='Erreur';return}if(status)status.textContent='✓ enregistré';if(window.signalDealGeoProfile?.region)await window.loadFeed();setTimeout(()=>{if(status)status.textContent=''},2500)};
+  async function initBiz(){if(!session?.user?.id||initUser===session.user.id)return;initUser=session.user.id;const {data}=await client.from('profiles').select('commercial_specialties').eq('id',session.user.id).maybeSingle();renderBiz(data?.commercial_specialties||[])}
+  const obs=new MutationObserver(()=>{if(session?.user?.id&&document.getElementById('dashboard')?.classList.contains('show'))initBiz()});obs.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});setInterval(()=>{if(session?.user?.id)initBiz()},1300)
+})();
+<\/script>`;
+
+    html=html.replace('</body>',teaserPatch+'\n'+geoPatch+'\n'+specialtyPatch+'\n</body>');
     document.open();document.write(html);document.close();
   }catch(e){
     document.getElementById('loading').textContent='Impossible de charger Signal Deal. Actualisez la page dans quelques instants.';
