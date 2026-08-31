@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "Signal Deal",
+  "short_name": "Signal Deal",
+  "description": "Prospection commerciale locale et radar B2B selon abonnement.",
+  "lang": "fr-FR",
+  "start_url": "./",
+  "scope": "../",
+  "display": "standalone",
+  "background_color": "#07101f",
+  "theme_color": "#07101f",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
