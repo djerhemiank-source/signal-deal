@@ -17,6 +17,8 @@ async function run(viewport){
  assert.match(await page.locator('main').innerText(),/Tout Issoire/i,'home did not finish loading');
  assert(await page.evaluate(()=>typeof window.renderDirectoryPage==='function'),'directory module missing');
  assert(await page.evaluate(()=>typeof window.openResidentAdForm==='function'),'resident classifieds module missing');
+ assert(await page.evaluate(()=>typeof window.renderPublicClassifieds==='function'),'public classifieds module missing');
+ assert(await page.evaluate(()=>typeof window.openClassifiedContact==='function'),'classified contact flow missing');
 
  await page.locator('[data-page="search"]').click();
  await page.locator('#globalQ').waitFor({state:'visible',timeout:5000});
@@ -43,6 +45,14 @@ async function run(viewport){
  await page.locator('#icMap').waitFor({state:'visible',timeout:20000});
  await page.waitForFunction(()=>/Autour de moi/i.test(document.querySelector('main')?.innerText||''),null,{timeout:20000});
 
+ await page.evaluate(()=>go('classifieds'));
+ await page.locator('#caQ').waitFor({state:'visible',timeout:20000});
+ assert.match(await page.locator('main').innerText(),/Petites annonces locales/i,'public classifieds did not render');
+ await page.locator('#caQ').fill('vélo');
+ await page.locator('button',{hasText:'Filtrer'}).click();
+ await page.locator('#caQ').waitFor({state:'visible',timeout:10000});
+ assert(await page.locator('button',{hasText:'Déposer'}).first().isVisible(),'classified deposit action missing');
+
  await page.locator('header button[title="Démonstration commerciale"]').click();
  await page.locator('.modalback').waitFor({state:'visible',timeout:5000});
  assert.match(await page.locator('#modalBody').innerText(),/démonstration entreprises/i);
@@ -53,4 +63,4 @@ async function run(viewport){
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT V12 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
+console.log('ISSOIRE CONNECT V16 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
