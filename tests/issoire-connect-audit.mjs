@@ -47,83 +47,50 @@ async function audit(viewport,label){
     for(let i=0;i<count;i++){
       const el=candidates.nth(i);
       if(await el.isVisible().catch(()=>false)){
-        try{
-          await el.click({timeout:3500});
-          clicked=true;
-        }catch{
-          await closeAnyModal(page);
-          try{await el.click({timeout:1500,force:true});clicked=true}catch{}
-        }
+        try{await el.click({timeout:3500});clicked=true}catch{await closeAnyModal(page);try{await el.click({timeout:1500,force:true});clicked=true}catch{}}
         break;
       }
     }
-    if(!clicked){
-      pages.push({target,visible:false});
-      continue;
-    }
+    if(!clicked){pages.push({target,visible:false});continue}
     await page.waitForTimeout(450);
     const modalVisible=await page.locator('.modalback.show,.modal.show,.modalback:visible,.modal:visible').count().catch(()=>0);
     const main=page.locator('main');
     const text=(await main.innerText().catch(()=>'' )).trim();
-    const buttons=await main.locator('button').count().catch(()=>0);
-    const inputs=await main.locator('input,textarea,select').count().catch(()=>0);
-    const links=await main.locator('a').count().catch(()=>0);
-    const errorText=/erreur|impossible de charger|failed to fetch/i.test(text);
-    pages.push({target,visible:true,textLength:text.length,buttons,inputs,links,errorText,modalVisible:Boolean(modalVisible),sample:text.slice(0,180).replace(/\s+/g,' ')});
+    pages.push({target,visible:true,textLength:text.length,buttons:await main.locator('button').count().catch(()=>0),inputs:await main.locator('input,textarea,select').count().catch(()=>0),links:await main.locator('a').count().catch(()=>0),errorText:/erreur|impossible de charger|failed to fetch/i.test(text),modalVisible:Boolean(modalVisible),sample:text.slice(0,180).replace(/\s+/g,' ')});
     await closeAnyModal(page);
   }
 
-  // Dedicated search scenario.
   await closeAnyModal(page);
   const searchCandidates=page.locator('[data-page="search"]');
   let searchNav=null;
-  for(let i=0;i<await searchCandidates.count();i++){
-    if(await searchCandidates.nth(i).isVisible().catch(()=>false)){searchNav=searchCandidates.nth(i);break;}
-  }
+  for(let i=0;i<await searchCandidates.count();i++){if(await searchCandidates.nth(i).isVisible().catch(()=>false)){searchNav=searchCandidates.nth(i);break}}
   if(searchNav){
     await searchNav.click({timeout:5000,force:true});
-    const q=page.locator('#globalQ');
-    await q.waitFor({state:'visible',timeout:5000});
-    await q.fill('boulangerie');
-    const searchBtn=page.locator('.searchbar button').first();
-    if(await searchBtn.count()) await searchBtn.click({force:true});
+    const q=page.locator('#globalQ');await q.waitFor({state:'visible',timeout:5000});await q.fill('boulangerie');
+    const searchBtn=page.locator('.searchbar button').first();if(await searchBtn.count())await searchBtn.click({force:true});
     await page.waitForFunction(()=>document.querySelector('#searchOut')?.innerText.trim().length>0,null,{timeout:10000});
-    const searchText=await page.locator('#searchOut').innerText();
-    assert.match(searchText,/boulanger|commerce|résultat/i,`${label}: search did not return understandable output`);
+    assert.match(await page.locator('#searchOut').innerText(),/boulanger|commerce|résultat/i,`${label}: search did not return understandable output`);
   }
 
-  // PWA assets must be reachable.
-  const manifestUrl=new URL('app/manifest.webmanifest',BASE).href;
-  const swUrl=new URL('app/sw.js',BASE).href;
-  const [manifestOk,swOk]=await page.evaluate(async ([m,s])=>{
-    const [mr,sr]=await Promise.all([fetch(m,{cache:'no-store'}),fetch(s,{cache:'no-store'})]);
-    return [mr.ok,sr.ok];
-  },[manifestUrl,swUrl]);
-  assert(manifestOk,`${label}: manifest unavailable`);
-  assert(swOk,`${label}: service worker unavailable`);
+  const [manifestOk,swOk]=await page.evaluate(async ([m,s])=>{const [mr,sr]=await Promise.all([fetch(m,{cache:'no-store'}),fetch(s,{cache:'no-store'})]);return [mr.ok,sr.ok]},[new URL('app/manifest.webmanifest',BASE).href,new URL('app/sw.js',BASE).href]);
+  assert(manifestOk,`${label}: manifest unavailable`);assert(swOk,`${label}: service worker unavailable`);
 
-  const globals=await page.evaluate(()=>({
-    hasState:typeof S!=='undefined',
-    hasSupabase:typeof sb!=='undefined',
-    go:typeof go,
-    authModal:typeof authModal,
-    proAccount:typeof proAccount,
-    accountPage:typeof accountPage,
-    runSearch:typeof window.runSearch,
-    claim:typeof window.openClaimBusiness,
-    editBusiness:typeof window.openEditBusiness
-  }));
+  const globals=await page.evaluate(()=>({hasState:typeof S!=='undefined',hasSupabase:typeof sb!=='undefined',go:typeof go,authModal:typeof authModal,proAccount:typeof proAccount,accountPage:typeof accountPage,runSearch:typeof window.runSearch,claim:typeof window.openClaimBusiness,editBusiness:typeof window.openEditBusiness,toggleFollow:typeof window.toggleFollow,followPrefs:typeof window.openFollowPreferences,saveFollowPrefs:typeof window.saveFollowPreferences,markNotificationRead:typeof window.markNotificationRead}));
+  assert(globals.hasState,`${label}: state S missing`);assert(globals.hasSupabase,`${label}: Supabase client missing`);assert.equal(globals.go,'function',`${label}: go() missing`);assert.equal(globals.runSearch,'function',`${label}: robust search patch missing`);assert.equal(globals.claim,'function',`${label}: business claim module missing`);assert.equal(globals.editBusiness,'function',`${label}: business edit module missing`);assert.equal(globals.toggleFollow,'function',`${label}: follow module missing`);assert.equal(globals.followPrefs,'function',`${label}: follow preferences missing`);assert.equal(globals.saveFollowPrefs,'function',`${label}: follow preferences save missing`);assert.equal(globals.markNotificationRead,'function',`${label}: notification read action missing`);
 
-  assert(globals.hasState,`${label}: state S missing`);
-  assert(globals.hasSupabase,`${label}: Supabase client missing`);
-  assert.equal(globals.go,'function',`${label}: go() missing`);
-  assert.equal(globals.runSearch,'function',`${label}: robust search patch missing`);
-  assert.equal(globals.claim,'function',`${label}: business claim module missing`);
-  assert.equal(globals.editBusiness,'function',`${label}: business edit module missing`);
+  // Logged-out follow action must ask for authentication and never write data.
+  await closeAnyModal(page);
+  const firstBusinessId=await page.evaluate(()=>Array.isArray(S?.businesses)&&S.businesses.length?S.businesses[0].id:null);
+  if(firstBusinessId){
+    await page.evaluate(id=>window.toggleFollow(id),firstBusinessId);
+    await page.waitForTimeout(150);
+    const modalText=await page.locator('.modalback:visible,.modal:visible').last().innerText().catch(()=>document.body.innerText);
+    assert.match(modalText,/connect|compte|inscri/i,`${label}: logged-out follow should request authentication`);
+    await closeAnyModal(page);
+  }
 
   const severeFailed=failedRequests.filter(x=>!/(favicon|google|analytics|doubleclick)/i.test(x.url));
   assert.equal(pageErrors.length,0,`${label}: JS errors: ${pageErrors.join(' | ')}`);
-
   await browser.close();
   return {label,targets,pages,globals,failedRequests:severeFailed.slice(0,20)};
 }
