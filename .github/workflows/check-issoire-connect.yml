@@ -24,27 +24,16 @@ jobs:
           test -f issoire-connect/app/index.html
           test -f issoire-connect/app/manifest.webmanifest
           test -f issoire-connect/app/sw.js
-          test -f issoire-connect/app/claim-patch.js
-          test -f issoire-connect/app/pro-edit-patch.js
-          test -f issoire-connect/app/search-patch.js
-          test -f issoire-connect/app/follow-patch.js
-          test -f issoire-connect/app/resident-patch.js
-          test -f issoire-connect/app/v3-data-0.txt
-          test -f issoire-connect/app/v3-data-1.txt
-          test -f issoire-connect/app/v3-data-2.txt
-          test -f issoire-connect/app/v3-data-3.txt
+          for f in claim-patch.js pro-edit-patch.js search-patch.js follow-patch.js resident-patch.js job-patch.js; do
+            test -f "issoire-connect/app/$f"
+            node --check "issoire-connect/app/$f"
+            grep -q "$f" issoire-connect/app/index.html
+            grep -q "$f" issoire-connect/app/sw.js
+          done
+          for f in v3-data-0.txt v3-data-1.txt v3-data-2.txt v3-data-3.txt; do test -f "issoire-connect/app/$f"; done
           test -f tests/issoire-connect-audit.mjs
-          node -e "JSON.parse(require('fs').readFileSync('issoire-connect/app/manifest.webmanifest','utf8'))"
-          node --check issoire-connect/app/claim-patch.js
-          node --check issoire-connect/app/pro-edit-patch.js
-          node --check issoire-connect/app/search-patch.js
-          node --check issoire-connect/app/follow-patch.js
-          node --check issoire-connect/app/resident-patch.js
           node --check tests/issoire-connect-audit.mjs
-          grep -q 'follow-patch.js' issoire-connect/app/index.html
-          grep -q 'follow-patch.js' issoire-connect/app/sw.js
-          grep -q 'resident-patch.js' issoire-connect/app/index.html
-          grep -q 'resident-patch.js' issoire-connect/app/sw.js
+          node -e "JSON.parse(require('fs').readFileSync('issoire-connect/app/manifest.webmanifest','utf8'))"
           python3 - <<'PY'
           import re,pathlib
           s=pathlib.Path('issoire-connect/app/index.html').read_text()
