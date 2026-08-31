@@ -47,7 +47,7 @@ jobs:
         run: |
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
-            BODY=$(curl -fsSL --no-cache "$URL?deploy=${GITHUB_SHA}" 2>/dev/null || true)
+            BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?deploy=${GITHUB_SHA}" 2>/dev/null || true)
             if echo "$BODY" | grep -q 'Aucun chargement automatique'; then
               echo 'Lightweight public app is live.'
               exit 0
