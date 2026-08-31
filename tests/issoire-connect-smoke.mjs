@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 const BASE=process.env.IC_BASE||'http://127.0.0.1:4173/issoire-connect/';
 async function run(viewport){
  const browser=await chromium.launch({headless:true});
- const context=await browser.newContext({viewport});
+ const context=await browser.newContext({viewport,serviceWorkers:'block'});
  const page=await context.newPage();
  const errors=[];let supabase=0;
  page.on('pageerror',e=>errors.push(String(e)));
