@@ -15,6 +15,7 @@ async function run(viewport){
  await page.locator('[data-page="search"]').waitFor({state:'visible',timeout:15000});
  await page.locator('.communitystats').waitFor({state:'visible',timeout:20000});
  assert.match(await page.locator('main').innerText(),/Tout Issoire/i,'home did not finish loading');
+ await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openClassifiedContact==='function',null,{timeout:20000});
  assert(await page.evaluate(()=>typeof window.renderDirectoryPage==='function'),'directory module missing');
  assert(await page.evaluate(()=>typeof window.openResidentAdForm==='function'),'resident classifieds module missing');
  assert(await page.evaluate(()=>typeof window.renderPublicClassifieds==='function'),'public classifieds module missing');
