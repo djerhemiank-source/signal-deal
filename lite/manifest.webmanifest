@@ -1,0 +1,10 @@
+{
+  "name":"Signal Deal Lite",
+  "short_name":"Signal Deal",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "background_color":"#07101f",
+  "theme_color":"#07101f",
+  "description":"Prospection commerciale locale et radar B2B, version Lite de stabilité."
+}
