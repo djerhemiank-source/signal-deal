@@ -15,6 +15,9 @@ async function run(viewport){
  await page.locator('[data-page="search"]').waitFor({state:'visible',timeout:15000});
  await page.locator('.communitystats').waitFor({state:'visible',timeout:20000});
  assert.match(await page.locator('main').innerText(),/Tout Issoire/i,'home did not finish loading');
+ assert(await page.evaluate(()=>typeof window.renderDirectoryPage==='function'),'directory module missing');
+ assert(await page.evaluate(()=>typeof window.openResidentAdForm==='function'),'resident classifieds module missing');
+
  await page.locator('[data-page="search"]').click();
  await page.locator('#globalQ').waitFor({state:'visible',timeout:5000});
  await page.locator('#globalQ').fill('boulangerie');
@@ -25,6 +28,20 @@ async function run(viewport){
  const back=page.locator('#backBtn');assert(await back.isVisible(),'back button missing');
  await back.click();
  await page.waitForTimeout(250);
+
+ await page.evaluate(()=>go('businesses'));
+ await page.locator('#dirJob').waitFor({state:'visible',timeout:5000});
+ assert.match(await page.locator('main').innerText(),/Annuaire local d’Issoire/i,'directory did not render');
+ await page.locator('#dirJob').fill('boulangerie');
+ await page.locator('button', {hasText:'Filtrer'}).click();
+ await page.waitForTimeout(300);
+ assert(await page.locator('#icMap').isVisible(),'directory map container missing');
+ assert((await page.locator('main article.card').count())>0,'directory filters returned no cards');
+
+ await page.evaluate(()=>go('nearby'));
+ await page.locator('#icMap').waitFor({state:'visible',timeout:5000});
+ assert.match(await page.locator('main').innerText(),/Autour de moi/i,'nearby map did not render');
+
  await page.locator('header button[title="Démonstration commerciale"]').click();
  await page.locator('.modalback').waitFor({state:'visible',timeout:5000});
  assert.match(await page.locator('#modalBody').innerText(),/démonstration entreprises/i);
@@ -35,4 +52,4 @@ async function run(viewport){
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT V3 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
+console.log('ISSOIRE CONNECT V11 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
