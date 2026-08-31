@@ -1,7 +1,7 @@
 name: Check Issoire Connect
 on:
   push:
-    branches: ["main","issoire-connect-launch"]
+    branches: ["main","issoire-connect-launch","issoire-connect-dev-complete"]
   pull_request:
     branches: ["main"]
 permissions:
@@ -28,10 +28,12 @@ jobs:
           test -f issoire-connect/app/v3-data-1.txt
           test -f issoire-connect/app/v3-data-2.txt
           test -f issoire-connect/app/v3-data-3.txt
+          test -f tests/issoire-connect-audit.mjs
           node -e "JSON.parse(require('fs').readFileSync('issoire-connect/app/manifest.webmanifest','utf8'))"
           node --check issoire-connect/app/claim-patch.js
           node --check issoire-connect/app/pro-edit-patch.js
           node --check issoire-connect/app/search-patch.js
+          node --check tests/issoire-connect-audit.mjs
           python3 - <<'PY'
           import re,pathlib
           s=pathlib.Path('issoire-connect/app/index.html').read_text()
@@ -52,6 +54,8 @@ jobs:
           cat /tmp/ic-http.log; exit 1
       - name: Chromium smoke test local V3
         run: node tests/issoire-connect-smoke.mjs
+      - name: Comprehensive functional audit local V3
+        run: node tests/issoire-connect-audit.mjs
       - name: Wait for public GitHub Pages V3 loader
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
