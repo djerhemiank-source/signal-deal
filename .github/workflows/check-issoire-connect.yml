@@ -24,7 +24,7 @@ jobs:
           test -f issoire-connect/app/index.html
           test -f issoire-connect/app/manifest.webmanifest
           test -f issoire-connect/app/sw.js
-          for f in claim-patch.js pro-edit-patch.js search-patch.js follow-patch.js resident-patch.js job-patch.js; do
+          for f in claim-patch.js pro-edit-patch.js search-patch.js follow-patch.js resident-patch.js job-patch.js community-patch.js; do
             test -f "issoire-connect/app/$f"
             node --check "issoire-connect/app/$f"
             grep -q "$f" issoire-connect/app/index.html
