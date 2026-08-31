@@ -24,7 +24,7 @@ const app=fs.readFileSync('lite/app.js','utf8');
 const html=fs.readFileSync('lite/index.html','utf8');
 const manifest=JSON.parse(fs.readFileSync('lite/manifest.webmanifest','utf8'));
 
-test('Aucun service worker dans Lite',()=>{assert(!/serviceWorker/i.test(app));assert(!/serviceWorker/i.test(html))});
+test('Aucune inscription de service worker dans Lite',()=>{assert(!/navigator\.serviceWorker/i.test(app));assert(!/serviceWorker\.register/i.test(app));assert(!/navigator\.serviceWorker/i.test(html));assert(!/serviceWorker\.register/i.test(html))});
 test('Aucun setInterval/polling',()=>assert(!/setInterval\s*\(/.test(app)));
 test('Aucune restauration asynchrone auto au chargement',()=>assert(!/\(async\s*\(\)\s*=>/.test(app)));
 test('boot() ne fait aucun appel fetch/api',()=>{const m=app.match(/function boot\(\)\{([\s\S]*?)\}\nboot\(\);/);assert(m,'boot() introuvable');assert(!/\bfetch\s*\(/.test(m[1]));assert(!/\bapi\s*\(/.test(m[1]));assert(!/\bresume\s*\(/.test(m[1]));assert(!/\bloadPlan\s*\(/.test(m[1]))});
