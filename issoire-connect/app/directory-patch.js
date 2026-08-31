@@ -53,7 +53,6 @@ businessCard=function(b){let h=_businessCardDirectory(b);if(h.includes('ic-conta
 viewBusiness=function(id){_viewBusinessDirectory(id);const b=S.businesses.find(x=>x.id===id);if(b&&modalBody&&!modalBody.querySelector('.ic-directory-contact')){const d=distanceOf(b),o=openState(b);modalBody.insertAdjacentHTML('beforeend',`<div class="notice ic-directory-contact" style="margin-top:12px"><b>${o.open?'🟢':'🕒'} ${e(o.label)}</b>${d!=null?`<br>📍 ${d.toFixed(1)} km de vous`:''}${contactActions(b,false)}</div>`)}};
 function filtered(){
  let rows=(S.businesses||[]).filter(b=>b&&b.is_active!==false);
- if(typeof isBusinessVisibleToResident==='function')try{rows=rows.filter(b=>isBusinessVisibleToResident(b))}catch{}
  const q=fold(D.job.trim());
  if(D.category!=='Toutes')rows=rows.filter(b=>categoryOf(b)===D.category);
  if(q)rows=rows.filter(b=>textOf(b).includes(q));
