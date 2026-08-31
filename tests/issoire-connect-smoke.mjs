@@ -13,11 +13,12 @@ async function run(viewport){
  const appUrl=new URL('app/index.html?ci='+Date.now(),BASE).href;
  r=await page.goto(appUrl,{waitUntil:'domcontentloaded',timeout:20000});assert(r?.ok(),'app HTTP');
  await page.locator('[data-page="search"]').waitFor({state:'visible',timeout:15000});
- await page.locator('header .brand').waitFor({state:'visible',timeout:5000});
+ await page.locator('.communitystats').waitFor({state:'visible',timeout:20000});
+ assert.match(await page.locator('main').innerText(),/Tout Issoire/i,'home did not finish loading');
  await page.locator('[data-page="search"]').click();
  await page.locator('#globalQ').waitFor({state:'visible',timeout:5000});
  await page.locator('#globalQ').fill('boulangerie');
- await page.waitForTimeout(500);
+ await page.waitForFunction(()=>document.querySelector('#searchOut')?.innerText.trim().length>0,null,{timeout:10000});
  const searchText=await page.locator('#searchOut').innerText();
  assert.match(searchText,/boulanger|résultat|commerce/i,'search did not render');
  const back=page.locator('#backBtn');assert(await back.isVisible(),'back button missing');
