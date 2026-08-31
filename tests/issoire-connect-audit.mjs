@@ -3,6 +3,16 @@ import assert from 'node:assert/strict';
 
 const BASE=process.env.IC_BASE||'http://127.0.0.1:4173/issoire-connect/';
 
+async function closeAnyModal(page){
+  await page.evaluate(()=>{
+    try{ if(typeof closeModal==='function') closeModal(); }catch{}
+    for(const el of document.querySelectorAll('.modalback,.modal')){
+      try{ el.classList.remove('show','open','active'); el.style.display='none'; }catch{}
+    }
+  }).catch(()=>{});
+  await page.waitForTimeout(80);
+}
+
 async function audit(viewport,label){
   const browser=await chromium.launch({headless:true});
   const context=await browser.newContext({viewport,serviceWorkers:'block'});
@@ -30,14 +40,20 @@ async function audit(viewport,label){
 
   const pages=[];
   for(const target of targets){
+    await closeAnyModal(page);
     const candidates=page.locator(`[data-page="${target}"]`);
     const count=await candidates.count();
     let clicked=false;
     for(let i=0;i<count;i++){
       const el=candidates.nth(i);
       if(await el.isVisible().catch(()=>false)){
-        await el.click({timeout:5000}).catch(()=>{});
-        clicked=true;
+        try{
+          await el.click({timeout:3500});
+          clicked=true;
+        }catch{
+          await closeAnyModal(page);
+          try{await el.click({timeout:1500,force:true});clicked=true}catch{}
+        }
         break;
       }
     }
@@ -46,24 +62,31 @@ async function audit(viewport,label){
       continue;
     }
     await page.waitForTimeout(450);
+    const modalVisible=await page.locator('.modalback.show,.modal.show,.modalback:visible,.modal:visible').count().catch(()=>0);
     const main=page.locator('main');
     const text=(await main.innerText().catch(()=>'' )).trim();
     const buttons=await main.locator('button').count().catch(()=>0);
     const inputs=await main.locator('input,textarea,select').count().catch(()=>0);
     const links=await main.locator('a').count().catch(()=>0);
     const errorText=/erreur|impossible de charger|failed to fetch/i.test(text);
-    pages.push({target,visible:true,textLength:text.length,buttons,inputs,links,errorText,sample:text.slice(0,180).replace(/\s+/g,' ')});
+    pages.push({target,visible:true,textLength:text.length,buttons,inputs,links,errorText,modalVisible:Boolean(modalVisible),sample:text.slice(0,180).replace(/\s+/g,' ')});
+    await closeAnyModal(page);
   }
 
   // Dedicated search scenario.
-  const searchNav=page.locator('[data-page="search"]').filter({visible:true}).first();
-  if(await searchNav.count()){
-    await searchNav.click();
+  await closeAnyModal(page);
+  const searchCandidates=page.locator('[data-page="search"]');
+  let searchNav=null;
+  for(let i=0;i<await searchCandidates.count();i++){
+    if(await searchCandidates.nth(i).isVisible().catch(()=>false)){searchNav=searchCandidates.nth(i);break;}
+  }
+  if(searchNav){
+    await searchNav.click({timeout:5000,force:true});
     const q=page.locator('#globalQ');
     await q.waitFor({state:'visible',timeout:5000});
     await q.fill('boulangerie');
     const searchBtn=page.locator('.searchbar button').first();
-    if(await searchBtn.count()) await searchBtn.click();
+    if(await searchBtn.count()) await searchBtn.click({force:true});
     await page.waitForFunction(()=>document.querySelector('#searchOut')?.innerText.trim().length>0,null,{timeout:10000});
     const searchText=await page.locator('#searchOut').innerText();
     assert.match(searchText,/boulanger|commerce|résultat/i,`${label}: search did not return understandable output`);
