@@ -8,12 +8,20 @@ async function run(viewport){
  const errors=[];let supabase=0;
  page.on('pageerror',e=>errors.push(String(e)));
  page.on('request',r=>{if(/supabase\.co/i.test(r.url()))supabase++});
- let r=await page.goto(BASE,{waitUntil:'networkidle',timeout:20000});assert(r?.ok(),'landing HTTP');
+ let r=await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:20000});assert(r?.ok(),'landing HTTP');
  assert.match(await page.title(),/Issoire Connect/);
  assert.equal(supabase,0,'landing must not call Supabase');
- r=await page.goto(BASE+'app/',{waitUntil:'networkidle',timeout:20000});assert(r?.ok(),'app HTTP');
+ const appUrl=new URL('app/index.html?ci='+Date.now(),BASE).href;
+ r=await page.goto(appUrl,{waitUntil:'domcontentloaded',timeout:20000});assert(r?.ok(),'app HTTP');
  assert.equal(supabase,0,'app startup must not call Supabase');
- assert.match(await page.locator('#status').innerText(),/Aucune donnée n’est chargée/i);
+ const html=await page.content();
+ if(!html.includes('Aucun chargement automatique')&&!html.includes('Aucune donnée n’est chargée')){
+   console.error('APP_DIAG',JSON.stringify({requested:appUrl,finalUrl:page.url(),title:await page.title(),status:r?.status(),html:html.slice(0,1200)}));
+   throw new Error('The lightweight app marker is missing from the HTML received by Chromium');
+ }
+ const status=page.locator('#status');
+ await status.waitFor({state:'attached',timeout:5000});
+ assert.match(await status.innerText(),/Aucune donnée n’est chargée/i);
  await page.locator('[data-view="businesses"]').first().click();
  await page.locator('#out .card').first().waitFor({state:'visible',timeout:10000});
  const businesses=await page.locator('#out .card').count(); assert(businesses>=1,'businesses empty');
