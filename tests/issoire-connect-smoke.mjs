@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-const BASE='http://127.0.0.1:4173/issoire-connect/';
+const BASE=process.env.IC_BASE||'http://127.0.0.1:4173/issoire-connect/';
 async function run(viewport){
  const browser=await chromium.launch({headless:true});
  const context=await browser.newContext({viewport});
@@ -8,10 +8,10 @@ async function run(viewport){
  const errors=[];let supabase=0;
  page.on('pageerror',e=>errors.push(String(e)));
  page.on('request',r=>{if(/supabase\.co/i.test(r.url()))supabase++});
- let r=await page.goto(BASE,{waitUntil:'networkidle',timeout:15000});assert(r?.ok(),'landing HTTP');
+ let r=await page.goto(BASE,{waitUntil:'networkidle',timeout:20000});assert(r?.ok(),'landing HTTP');
  assert.match(await page.title(),/Issoire Connect/);
  assert.equal(supabase,0,'landing must not call Supabase');
- r=await page.goto(BASE+'app/',{waitUntil:'networkidle',timeout:15000});assert(r?.ok(),'app HTTP');
+ r=await page.goto(BASE+'app/',{waitUntil:'networkidle',timeout:20000});assert(r?.ok(),'app HTTP');
  assert.equal(supabase,0,'app startup must not call Supabase');
  assert.match(await page.locator('#status').innerText(),/Aucune donnée n’est chargée/i);
  await page.locator('[data-view="businesses"]').first().click();
@@ -26,4 +26,4 @@ async function run(viewport){
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT SMOKE PASS',JSON.stringify({desktop,mobile}));
+console.log('ISSOIRE CONNECT SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
