@@ -1,0 +1,43 @@
+name: Check Signal Deal PWA
+
+on:
+  push:
+    branches: ["pwa-v2-local-prospection"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate manifest JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('pwa/manifest.webmanifest','utf8')); console.log('manifest OK')"
+      - name: Validate inline JavaScript syntax
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('pwa/index.html','utf8');
+          const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
+          if(!scripts.length) throw new Error('No inline script found');
+          fs.writeFileSync('/tmp/pwa-inline.js',scripts.join('\n'));
+          NODE
+          node --check /tmp/pwa-inline.js
+      - name: Check required PWA files and features
+        run: |
+          test -f pwa/index.html
+          test -f pwa/manifest.webmanifest
+          test -f pwa/icon.svg
+          test -f pwa/offline.html
+          test -f sw-pwa.js
+          grep -q 'local-prospects' pwa/index.html
+          grep -q 'Essentiel' pwa/index.html
+          grep -q 'serviceWorker.register' pwa/index.html
+          grep -q 'client_reference_id' pwa/index.html
+          echo 'PWA static checks OK'
