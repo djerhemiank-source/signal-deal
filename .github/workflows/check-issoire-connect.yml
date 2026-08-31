@@ -25,6 +25,7 @@ jobs:
           test -f issoire-connect/app/pro-edit-patch.js
           test -f issoire-connect/app/search-patch.js
           test -f issoire-connect/app/follow-patch.js
+          test -f issoire-connect/app/resident-patch.js
           test -f issoire-connect/app/v3-data-0.txt
           test -f issoire-connect/app/v3-data-1.txt
           test -f issoire-connect/app/v3-data-2.txt
@@ -35,9 +36,12 @@ jobs:
           node --check issoire-connect/app/pro-edit-patch.js
           node --check issoire-connect/app/search-patch.js
           node --check issoire-connect/app/follow-patch.js
+          node --check issoire-connect/app/resident-patch.js
           node --check tests/issoire-connect-audit.mjs
           grep -q 'follow-patch.js' issoire-connect/app/index.html
           grep -q 'follow-patch.js' issoire-connect/app/sw.js
+          grep -q 'resident-patch.js' issoire-connect/app/index.html
+          grep -q 'resident-patch.js' issoire-connect/app/sw.js
           python3 - <<'PY'
           import re,pathlib
           s=pathlib.Path('issoire-connect/app/index.html').read_text()
