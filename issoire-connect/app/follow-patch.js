@@ -34,10 +34,11 @@ window.toggleFollow=async function(id){
   S.follows=S.follows.filter(f=>f.business_id!==id);
   syncButtons(id);say('Commerce retiré de vos favoris.');
  }else{
-  const payload={user_id:uid,business_id:id,notify_promos:true,notify_waste:true,notify_jobs:false,notify_events:true};
+  const payload={user_id:uid,business_id:id,notify_promos:false,notify_waste:false,notify_jobs:false,notify_events:false};
   const {data,error}=await sb.from('ic_follows').insert(payload).select('*').single();
   if(error)return say(error.message);
-  S.follows.unshift(data);syncButtons(id);say('Commerce suivi. Vous pouvez régler ses notifications.');
+  S.follows.unshift(data);syncButtons(id);say('Commerce ajouté à vos favoris. Choisissez maintenant les notifications souhaitées.');
+  openFollowPreferences(id);
  }
 };
 
@@ -45,7 +46,7 @@ window.openFollowPreferences=function(id){
  if(!S.session)return authModal('businesses');
  const f=row(id);if(!f)return say('Suivez d’abord ce commerçant.');
  const b=S.businesses.find(x=>x.id===id);
- openModal(`<h2>🔔 Notifications — ${E(b?.name||'Commerce')}</h2><p class="muted">Choisissez uniquement ce que vous souhaitez recevoir pour ce commerce.</p><div class="form"><label><input id="fpPromos" type="checkbox" ${f.notify_promos?'checked':''}> Promotions et nouveautés</label><label><input id="fpWaste" type="checkbox" ${f.notify_waste?'checked':''}> Invendus / dernière minute</label><label><input id="fpJobs" type="checkbox" ${f.notify_jobs?'checked':''}> Offres d’emploi</label><label><input id="fpEvents" type="checkbox" ${f.notify_events?'checked':''}> Événements</label><button class="btn brand" onclick="saveFollowPreferences('${E(id)}')">💾 Enregistrer mes préférences</button></div>`)
+ openModal(`<h2>🔔 Notifications — ${E(b?.name||'Commerce')}</h2><p class="muted">Aucune alerte n’est obligatoire. Activez uniquement ce que vous souhaitez recevoir pour ce commerce.</p><div class="form"><label><input id="fpPromos" type="checkbox" ${f.notify_promos?'checked':''}> Promotions et nouveautés</label><label><input id="fpWaste" type="checkbox" ${f.notify_waste?'checked':''}> Invendus / dernière minute</label><label><input id="fpJobs" type="checkbox" ${f.notify_jobs?'checked':''}> Offres d’emploi</label><label><input id="fpEvents" type="checkbox" ${f.notify_events?'checked':''}> Événements</label><button class="btn brand" onclick="saveFollowPreferences('${E(id)}')">💾 Enregistrer mes préférences</button></div>`)
 };
 window.saveFollowPreferences=async function(id){
  const f=row(id);if(!f||!S.session)return;
@@ -72,7 +73,7 @@ window.markNotificationRead=async function(id){if(!S.session)return;const {error
 function followingSection(){
  const followed=S.follows.map(f=>S.businesses.find(b=>b.id===f.business_id)).filter(Boolean);
  const unread=S.notifications.filter(n=>!n.read_at).length;
- return `<div class="sectionhead"><div><h2>❤️ Mes favoris / Je suis</h2><p>Accès rapide aux commerces que vous suivez et réglage anti-spam commerce par commerce.</p></div><span class="pill">${followed.length} suivi${followed.length>1?'s':''}</span></div>${followed.length?`<div class="cards">${followed.map(b=>`<article class="card"><h3>${E(b.name)}</h3><div class="muted">${E(b.category||'Professionnel')} · ${E(b.city||'Issoire')}</div><div class="actions" style="margin-top:10px"><button class="btn brand" onclick="viewBusiness('${E(b.id)}')">Voir la fiche</button><button class="btn" onclick="openFollowPreferences('${E(b.id)}')">🔔 Notifications</button><button class="btn" onclick="toggleFollow('${E(b.id)}')">Ne plus suivre</button></div></article>`).join('')}</div>`:'<div class="empty">Vous ne suivez encore aucun commerce. Ouvrez une fiche puis choisissez « Suivre ce commerçant ».</div>'}<div class="sectionhead"><div><h2>🔔 Mes notifications</h2><p>${unread} non lue${unread>1?'s':''}</p></div></div>${S.notifications.length?`<div class="cards">${S.notifications.slice(0,20).map(notifCard).join('')}</div>`:'<div class="empty">Aucune notification pour le moment.</div>'}`;
+ return `<div class="sectionhead"><div><h2>❤️ Mes favoris / Je suis</h2><p>Accès rapide aux commerces que vous suivez. Les notifications sont désactivées par défaut et réglables commerce par commerce.</p></div><span class="pill">${followed.length} suivi${followed.length>1?'s':''}</span></div>${followed.length?`<div class="cards">${followed.map(b=>`<article class="card"><h3>${E(b.name)}</h3><div class="muted">${E(b.category||'Professionnel')} · ${E(b.city||'Issoire')}</div><div class="actions" style="margin-top:10px"><button class="btn brand" onclick="viewBusiness('${E(b.id)}')">Voir la fiche</button><button class="btn" onclick="openFollowPreferences('${E(b.id)}')">🔔 Notifications</button><button class="btn" onclick="toggleFollow('${E(b.id)}')">Ne plus suivre</button></div></article>`).join('')}</div>`:'<div class="empty">Vous ne suivez encore aucun commerce. Ouvrez une fiche puis choisissez « Suivre ce commerçant ».</div>'}<div class="sectionhead"><div><h2>🔔 Mes notifications</h2><p>${unread} non lue${unread>1?'s':''}</p></div></div>${S.notifications.length?`<div class="cards">${S.notifications.slice(0,20).map(notifCard).join('')}</div>`:'<div class="empty">Aucune notification pour le moment.</div>'}`;
 }
 
 accountPage=function(){
