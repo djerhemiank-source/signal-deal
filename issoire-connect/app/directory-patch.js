@@ -1,6 +1,6 @@
 (()=>{
 if(typeof S==='undefined'||typeof sb==='undefined')return;
-const D={category:'Toutes',job:'',distance:0,openNow:false,geo:null,map:null,nearby:false};
+const D={category:'Toutes',job:'',distance:0,openNow:false,geo:null,map:null,nearby:false,rows:[],loaded:false,loading:null};
 const CATS=['Toutes','Alimentation & restaurants','Santé','Auto & mobilité','Maison & travaux','Beauté','Services & assurances','Commerces','Loisirs & sport','Hébergement','Autres'];
 const _goDirectory=go,_businessCardDirectory=businessCard,_viewBusinessDirectory=viewBusiness;
 function e(v){return esc(String(v??''))}
@@ -19,10 +19,26 @@ function categoryOf(b){
  if(/magasin|boutique|commerce|vetement|chauss|fleur|bijou|librair|meuble|electromenag|optique/.test(t))return 'Commerces';
  return 'Autres';
 }
+async function ensureRows(force=false){
+ if(D.loaded&&!force)return D.rows;
+ if(D.loading&&!force)return D.loading;
+ D.loading=(async()=>{
+  const cols='id,name,category,description,address,city,postal_code,latitude,longitude,phone,website,plan,is_active,source,is_claimed,search_keywords,naf_code,opening_hours,visibility_radius_km';
+  const all=[];const size=1000;
+  for(let from=0;from<6000;from+=size){
+   const {data,error}=await sb.from('ic_businesses').select(cols).eq('is_active',true).order('name',{ascending:true}).range(from,from+size-1);
+   if(error)throw error;
+   const batch=data||[];all.push(...batch);
+   if(batch.length<size)break;
+  }
+  D.rows=all;D.loaded=true;return all;
+ })();
+ try{return await D.loading}finally{D.loading=null}
+}
 function residentGeo(){
  if(D.geo&&Number.isFinite(D.geo.lat)&&Number.isFinite(D.geo.lon))return D.geo;
  const candidates=[S.residentGeo,S.geo,S.location];
- for(const x of candidates||[]){if(x){const lat=Number(x.lat??x.latitude),lon=Number(x.lon??x.lng??x.longitude);if(Number.isFinite(lat)&&Number.isFinite(lon))return D.geo={lat,lon}}}
+ for(const x of candidates){if(x){const lat=Number(x.lat??x.latitude),lon=Number(x.lon??x.lng??x.longitude);if(Number.isFinite(lat)&&Number.isFinite(lon))return D.geo={lat,lon}}}
  try{const x=JSON.parse(localStorage.getItem('ic_resident_geo')||'null');if(x){const lat=Number(x.lat??x.latitude),lon=Number(x.lon??x.lng??x.longitude);if(Number.isFinite(lat)&&Number.isFinite(lon))return D.geo={lat,lon}}}catch{}
  return null;
 }
@@ -31,13 +47,12 @@ function distanceOf(b){const g=residentGeo(),lat=Number(b.latitude),lon=Number(b
 function parisNow(){
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Paris',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
  const o={};for(const p of parts)o[p.type]=p.value;
- const key=({Mon:'mon',Tue:'tue',Wed:'wed',Thu:'thu',Fri:'fri',Sat:'sat',Sun:'sun'})[o.weekday]||'mon';
- return {key,min:(Number(o.hour)%24)*60+Number(o.minute)};
+ return {key:({Mon:'mon',Tue:'tue',Wed:'wed',Thu:'thu',Fri:'fri',Sat:'sat',Sun:'sun'})[o.weekday]||'mon',min:(Number(o.hour)%24)*60+Number(o.minute)};
 }
 function openState(b){
  const h=b?.opening_hours;if(!h||typeof h!=='object')return {known:false,open:false,label:'Horaires à compléter'};
  const n=parisNow(),raw=String(h[n.key]||'').trim();if(!raw)return {known:false,open:false,label:'Horaires à compléter'};
- const f=fold(raw);if(/ferme|closed/.test(f))return {known:true,open:false,label:'Fermé'};
+ if(/ferme|closed/.test(fold(raw)))return {known:true,open:false,label:'Fermé'};
  const pairs=[...raw.matchAll(/(\d{1,2})[:h](\d{2})\s*[-–—]\s*(\d{1,2})[:h](\d{2})/g)];
  if(!pairs.length)return {known:false,open:false,label:raw};
  for(const m of pairs){const a=Number(m[1])*60+Number(m[2]),z=Number(m[3])*60+Number(m[4]);if(n.min>=a&&n.min<z)return {known:true,open:true,label:'Ouvert maintenant'}}
@@ -47,12 +62,13 @@ function safeUrl(v){if(!v)return null;try{const u=new URL(/^https?:\/\//i.test(v
 function routeUrl(b){const lat=Number(b.latitude),lon=Number(b.longitude);const dest=Number.isFinite(lat)&&Number.isFinite(lon)?`${lat},${lon}`:[b.address,b.postal_code,b.city].filter(Boolean).join(' ');return dest?'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(dest):null}
 function contactActions(b,detail=false){
  const phone=String(b.phone||'').replace(/[^\d+]/g,''),site=safeUrl(b.website),route=routeUrl(b);
- return `<div class="actions ic-contact-actions" style="margin-top:10px;gap:6px;flex-wrap:wrap">${detail?`<button class="btn brand" onclick="viewBusiness('${e(b.id)}')">Voir la fiche</button>`:''}${phone?`<a class="btn" href="tel:${e(phone)}">☎ Appeler</a>`:''}${site?`<a class="btn" href="${e(site)}" target="_blank" rel="noopener">🌐 Site</a>`:''}${route?`<a class="btn" href="${e(route)}" target="_blank" rel="noopener">🧭 Itinéraire</a>`:''}</div>`;
+ return `<div class="actions ic-contact-actions" style="margin-top:10px;gap:6px;flex-wrap:wrap">${detail?`<button class="btn brand" onclick="openDirectoryBusiness('${e(b.id)}')">Voir la fiche</button>`:''}${phone?`<a class="btn" href="tel:${e(phone)}">☎ Appeler</a>`:''}${site?`<a class="btn" href="${e(site)}" target="_blank" rel="noopener">🌐 Site</a>`:''}${route?`<a class="btn" href="${e(route)}" target="_blank" rel="noopener">🧭 Itinéraire</a>`:''}</div>`;
 }
+window.openDirectoryBusiness=function(id){const b=D.rows.find(x=>x.id===id);if(b&&!S.businesses.some(x=>x.id===id))S.businesses.push(b);viewBusiness(id)};
 businessCard=function(b){let h=_businessCardDirectory(b);if(h.includes('ic-contact-actions'))return h;return h.replace('</article>',contactActions(b,false)+'</article>')};
-viewBusiness=function(id){_viewBusinessDirectory(id);const b=S.businesses.find(x=>x.id===id);if(b&&modalBody&&!modalBody.querySelector('.ic-directory-contact')){const d=distanceOf(b),o=openState(b);modalBody.insertAdjacentHTML('beforeend',`<div class="notice ic-directory-contact" style="margin-top:12px"><b>${o.open?'🟢':'🕒'} ${e(o.label)}</b>${d!=null?`<br>📍 ${d.toFixed(1)} km de vous`:''}${contactActions(b,false)}</div>`)}};
+viewBusiness=function(id){_viewBusinessDirectory(id);const b=S.businesses.find(x=>x.id===id)||D.rows.find(x=>x.id===id);if(b&&modalBody&&!modalBody.querySelector('.ic-directory-contact')){const d=distanceOf(b),o=openState(b);modalBody.insertAdjacentHTML('beforeend',`<div class="notice ic-directory-contact" style="margin-top:12px"><b>${o.open?'🟢':'🕒'} ${e(o.label)}</b>${d!=null?`<br>📍 ${d.toFixed(1)} km de vous`:''}${contactActions(b,false)}</div>`)}};
 function filtered(){
- let rows=(S.businesses||[]).filter(b=>b&&b.is_active!==false);
+ let rows=D.rows.filter(b=>b&&b.is_active!==false);
  const q=fold(D.job.trim());
  if(D.category!=='Toutes')rows=rows.filter(b=>categoryOf(b)===D.category);
  if(q)rows=rows.filter(b=>textOf(b).includes(q));
@@ -75,14 +91,16 @@ window.useDirectoryLocation=function(){if(!navigator.geolocation)return say('La 
 function ensureLeaflet(){
  if(window.L)return Promise.resolve();
  if(!document.querySelector('link[data-ic-leaflet]')){const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';l.dataset.icLeaflet='1';document.head.appendChild(l)}
- return new Promise((resolve,reject)=>{const old=document.querySelector('script[data-ic-leaflet]');if(old){old.addEventListener('load',resolve,{once:true});old.addEventListener('error',reject,{once:true});return}const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.dataset.icLeaflet='1';s.onload=resolve;s.onerror=reject;document.head.appendChild(s)});
+ return new Promise((resolve,reject)=>{const old=document.querySelector('script[data-ic-leaflet]');if(old){if(window.L)return resolve();old.addEventListener('load',resolve,{once:true});old.addEventListener('error',reject,{once:true});return}const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.dataset.icLeaflet='1';s.onload=resolve;s.onerror=reject;document.head.appendChild(s)});
 }
 async function drawMap(rows){
  const host=document.getElementById('icMap');if(!host)return;
- try{await ensureLeaflet();if(D.map)try{D.map.remove()}catch{};const g=residentGeo(),center=g?[g.lat,g.lon]:[45.5442,3.2490];D.map=L.map(host).setView(center,g?13:12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(D.map);const bounds=[];if(g){L.circleMarker([g.lat,g.lon],{radius:8}).addTo(D.map).bindPopup('📍 Ma position');bounds.push([g.lat,g.lon])}for(const b of rows.slice(0,250)){const lat=Number(b.latitude),lon=Number(b.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;L.marker([lat,lon]).addTo(D.map).bindPopup(`<b>${e(b.name)}</b><br>${e(categoryOf(b))}`);bounds.push([lat,lon])}if(bounds.length>1)D.map.fitBounds(bounds,{padding:[24,24],maxZoom:15})}catch{host.innerHTML='<div class="empty">La carte n’a pas pu se charger. La liste reste disponible.</div>'}
+ try{await ensureLeaflet();if(!document.getElementById('icMap'))return;if(D.map)try{D.map.remove()}catch{};const g=residentGeo(),center=g?[g.lat,g.lon]:[45.5442,3.2490];D.map=L.map(host).setView(center,g?13:12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(D.map);const bounds=[];if(g){L.circleMarker([g.lat,g.lon],{radius:8}).addTo(D.map).bindPopup('📍 Ma position');bounds.push([g.lat,g.lon])}for(const b of rows.slice(0,250)){const lat=Number(b.latitude),lon=Number(b.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;L.marker([lat,lon]).addTo(D.map).bindPopup(`<b>${e(b.name)}</b><br>${e(categoryOf(b))}`);bounds.push([lat,lon])}if(bounds.length>1)D.map.fitBounds(bounds,{padding:[24,24],maxZoom:15})}catch{if(document.getElementById('icMap'))host.innerHTML='<div class="empty">La carte n’a pas pu se charger. La liste reste disponible.</div>'}
 }
-window.renderDirectoryPage=function(nearby=false){
+window.renderDirectoryPage=async function(nearby=false){
  D.nearby=!!nearby;if(D.nearby&&D.distance===0)D.distance=10;
+ main.innerHTML=`<div class="sectionhead"><div><h2>${D.nearby?'📍 Autour de moi':'🏪 Annuaire local d’Issoire'}</h2><p>Chargement des établissements…</p></div></div><div class="empty">Chargement de l’annuaire officiel…</div>`;
+ try{await ensureRows()}catch(err){main.innerHTML=`<div class="notice"><b>Impossible de charger l’annuaire.</b><br>${e(err.message||err)}</div>`;return}
  const rows=filtered(),shown=rows.slice(0,120),g=residentGeo();
  main.innerHTML=`<div class="sectionhead"><div><h2>${D.nearby?'📍 Autour de moi':'🏪 Annuaire local d’Issoire'}</h2><p>${rows.length} établissement(s) correspondant aux filtres${g?' · triés par proximité':''}.</p></div>${D.nearby?'<button class="btn" onclick="go(\'businesses\')">Voir tout l’annuaire</button>':'<button class="btn brand" onclick="go(\'nearby\')">🗺 Autour de moi</button>'}</div>${filtersHtml()}${!g&&D.nearby?'<div class="notice"><b>Pour calculer les distances précisément</b><br>Utilisez le bouton « Utiliser ma position ».</div>':''}<div id="icMap" style="height:360px;border-radius:16px;overflow:hidden;margin:12px 0;background:#e9eef5"></div><div class="sectionhead"><div><h2>Résultats</h2><p>${shown.length}${rows.length>shown.length?' premiers':''} affichés</p></div></div><div class="cards">${shown.length?shown.map(directoryCard).join(''):'<div class="empty">Aucun établissement ne correspond à ces filtres.</div>'}</div>`;
  drawMap(rows);
