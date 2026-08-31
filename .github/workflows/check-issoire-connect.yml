@@ -1,7 +1,7 @@
 name: Check Issoire Connect
 on:
   push:
-    branches: ["issoire-connect-launch"]
+    branches: ["main","issoire-connect-launch"]
   pull_request:
     branches: ["main"]
 permissions:
@@ -9,7 +9,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,5 +40,21 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ic-http.log 2>&1 &
           for i in {1..20}; do curl -fsS http://127.0.0.1:4173/issoire-connect/ >/dev/null && exit 0; sleep .5; done
           cat /tmp/ic-http.log; exit 1
-      - name: Chromium smoke test
+      - name: Chromium smoke test local
+        run: node tests/issoire-connect-smoke.mjs
+      - name: Wait for public GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/'
+          for i in {1..30}; do
+            BODY=$(curl -fsSL "$URL" 2>/dev/null || true)
+            echo "$BODY" | grep -q 'Toute votre ville' && exit 0
+            sleep 5
+          done
+          echo 'La page publique Issoire Connect n est pas disponible dans le délai.'
+          exit 1
+      - name: Chromium smoke test public
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IC_BASE: https://djerhemiank-source.github.io/signal-deal/issoire-connect/
         run: node tests/issoire-connect-smoke.mjs
