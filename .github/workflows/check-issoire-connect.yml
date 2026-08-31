@@ -9,7 +9,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,16 +42,22 @@ jobs:
           cat /tmp/ic-http.log; exit 1
       - name: Chromium smoke test local
         run: node tests/issoire-connect-smoke.mjs
-      - name: Wait for public GitHub Pages
+      - name: Wait for exact public GitHub Pages version
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/'
-          for i in {1..30}; do
-            BODY=$(curl -fsSL "$URL" 2>/dev/null || true)
-            echo "$BODY" | grep -q 'Toute votre ville' && exit 0
+          URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
+          EXPECTED=$(sha256sum issoire-connect/app/index.html | awk '{print $1}')
+          echo "Expected app SHA256: $EXPECTED"
+          for i in {1..60}; do
+            ACTUAL=$(curl -fsSL --no-cache "$URL?deploy=${GITHUB_SHA}" 2>/dev/null | sha256sum | awk '{print $1}')
+            if [ "$ACTUAL" = "$EXPECTED" ]; then
+              echo 'Exact public app version is live.'
+              exit 0
+            fi
+            echo "Waiting for GitHub Pages deployment ($i/60)..."
             sleep 5
           done
-          echo 'La page publique Issoire Connect n est pas disponible dans le délai.'
+          echo 'GitHub Pages did not publish the exact app version within 5 minutes.'
           exit 1
       - name: Chromium smoke test public
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
