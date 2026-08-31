@@ -2,7 +2,7 @@ name: Smoke Signal Deal Lite Chromium
 
 on:
   push:
-    branches: ["pwa-lite-v3-stability"]
+    branches: ["main", "pwa-lite-v3-stability"]
   pull_request:
     branches: ["main"]
 
@@ -12,7 +12,7 @@ permissions:
 jobs:
   chromium-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,7 +32,24 @@ jobs:
           done
           cat /tmp/signal-deal-lite-http.log
           exit 1
-      - name: Chromium automated smoke test
+      - name: Chromium automated smoke test local
+        run: node tests/lite-browser-smoke.mjs
+      - name: Wait for public GitHub Pages V3
+        run: |
+          URL='https://djerhemiank-source.github.io/signal-deal/lite/'
+          for i in {1..40}; do
+            BODY=$(curl -fsSL --max-time 10 "$URL" || true)
+            if printf '%s' "$BODY" | grep -q '<title>Signal Deal Lite</title>'; then
+              echo 'Public Signal Deal Lite V3 detected'
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'Public Lite V3 not detected in time'
+          exit 1
+      - name: Chromium automated smoke test public
+        env:
+          SMOKE_BASE_URL: https://djerhemiank-source.github.io/signal-deal/lite/
         run: node tests/lite-browser-smoke.mjs
       - name: Show server log on failure
         if: failure()
