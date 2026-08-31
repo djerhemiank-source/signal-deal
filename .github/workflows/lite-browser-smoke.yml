@@ -1,0 +1,39 @@
+name: Smoke Signal Deal Lite Chromium
+
+on:
+  push:
+    branches: ["pwa-lite-v3-stability"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/signal-deal-lite-http.log 2>&1 &
+          echo $! > /tmp/signal-deal-lite-http.pid
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/lite/ >/dev/null; then exit 0; fi
+            sleep 0.5
+          done
+          cat /tmp/signal-deal-lite-http.log
+          exit 1
+      - name: Chromium automated smoke test
+        run: node tests/lite-browser-smoke.mjs
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/signal-deal-lite-http.log || true

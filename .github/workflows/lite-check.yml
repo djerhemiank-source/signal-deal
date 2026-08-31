@@ -1,0 +1,31 @@
+name: Check Signal Deal Lite
+
+on:
+  push:
+    branches: ["pwa-lite-v3-stability"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check lite/core.js
+          node --check lite/app.js
+      - name: Run Lite functional tests
+        run: node tests/lite-core.test.js
+      - name: Check file sizes
+        run: |
+          test $(wc -c < lite/index.html) -lt 30000
+          test $(wc -c < lite/app.js) -lt 30000
+          test $(wc -c < lite/core.js) -lt 10000
+          echo "Lite size checks OK"
