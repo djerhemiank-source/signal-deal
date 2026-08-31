@@ -24,6 +24,7 @@ jobs:
           test -f issoire-connect/app/claim-patch.js
           test -f issoire-connect/app/pro-edit-patch.js
           test -f issoire-connect/app/search-patch.js
+          test -f issoire-connect/app/admin-full-patch.js
           test -f issoire-connect/app/v3-data-0.txt
           test -f issoire-connect/app/v3-data-1.txt
           test -f issoire-connect/app/v3-data-2.txt
@@ -32,6 +33,7 @@ jobs:
           node --check issoire-connect/app/claim-patch.js
           node --check issoire-connect/app/pro-edit-patch.js
           node --check issoire-connect/app/search-patch.js
+          node --check issoire-connect/app/admin-full-patch.js
           python3 - <<'PY'
           import re,pathlib
           s=pathlib.Path('issoire-connect/app/index.html').read_text()
@@ -58,8 +60,8 @@ jobs:
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
             BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?deploy=${GITHUB_SHA}" 2>/dev/null || true)
-            if echo "$BODY" | grep -q 'v3-data-0.txt' && echo "$BODY" | grep -q 'claim-patch.js' && echo "$BODY" | grep -q 'search-patch.js'; then
-              echo 'Full Issoire Connect V3 loader is live.'
+            if echo "$BODY" | grep -q 'v3-data-0.txt' && echo "$BODY" | grep -q 'claim-patch.js' && echo "$BODY" | grep -q 'search-patch.js' && echo "$BODY" | grep -q 'admin-full-patch.js'; then
+              echo 'Full Issoire Connect V3 loader with admin panel is live.'
               exit 0
             fi
             echo "Waiting for full GitHub Pages V3 ($i/60)..."
