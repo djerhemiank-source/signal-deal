@@ -25,8 +25,10 @@ jobs:
           test -f issoire-connect/app/pro-edit-patch.js
           test -f issoire-connect/app/search-patch.js
           test -f issoire-connect/app/admin-full-patch.js
+          test -f issoire-connect/app/leaflet-safety-patch.js
           test -f issoire-connect/app/directory-patch.js
           test -f issoire-connect/app/resident-classifieds-patch.js
+          test -f issoire-connect/app/directory-route-fix.js
           test -f issoire-connect/app/v3-data-0.txt
           test -f issoire-connect/app/v3-data-1.txt
           test -f issoire-connect/app/v3-data-2.txt
@@ -36,8 +38,10 @@ jobs:
           node --check issoire-connect/app/pro-edit-patch.js
           node --check issoire-connect/app/search-patch.js
           node --check issoire-connect/app/admin-full-patch.js
+          node --check issoire-connect/app/leaflet-safety-patch.js
           node --check issoire-connect/app/directory-patch.js
           node --check issoire-connect/app/resident-classifieds-patch.js
+          node --check issoire-connect/app/directory-route-fix.js
           python3 - <<'PY'
           import re,pathlib
           s=pathlib.Path('issoire-connect/app/index.html').read_text()
@@ -56,24 +60,24 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ic-http.log 2>&1 &
           for i in {1..20}; do curl -fsS http://127.0.0.1:4173/issoire-connect/ >/dev/null && exit 0; sleep .5; done
           cat /tmp/ic-http.log; exit 1
-      - name: Chromium smoke test local V11
+      - name: Chromium smoke test local V13
         run: node tests/issoire-connect-smoke.mjs
-      - name: Wait for public GitHub Pages V11 loader
+      - name: Wait for public GitHub Pages V13 loader
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
             BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?deploy=${GITHUB_SHA}" 2>/dev/null || true)
-            if echo "$BODY" | grep -q 'v3-data-0.txt' && echo "$BODY" | grep -q 'directory-patch.js' && echo "$BODY" | grep -q 'resident-classifieds-patch.js'; then
-              echo 'Issoire Connect V11 directory and classifieds modules are live.'
+            if echo "$BODY" | grep -q 'leaflet-safety-patch.js' && echo "$BODY" | grep -q 'directory-patch.js' && echo "$BODY" | grep -q 'resident-classifieds-patch.js' && echo "$BODY" | grep -q 'directory-route-fix.js'; then
+              echo 'Issoire Connect V13 is live.'
               exit 0
             fi
-            echo "Waiting for GitHub Pages V11 ($i/60)..."
+            echo "Waiting for GitHub Pages V13 ($i/60)..."
             sleep 5
           done
-          echo 'The V11 loader did not appear within 5 minutes.'
+          echo 'The V13 loader did not appear within 5 minutes.'
           exit 1
-      - name: Chromium smoke test public V11
+      - name: Chromium smoke test public V13
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           IC_BASE: https://djerhemiank-source.github.io/signal-deal/issoire-connect/
