@@ -75,8 +75,13 @@ async function audit(viewport,label){
   const [manifestOk,swOk]=await page.evaluate(async ([m,s])=>{const [mr,sr]=await Promise.all([fetch(m,{cache:'no-store'}),fetch(s,{cache:'no-store'})]);return [mr.ok,sr.ok]},[new URL('app/manifest.webmanifest',BASE).href,new URL('app/sw.js',BASE).href]);
   assert(manifestOk,`${label}: manifest unavailable`);assert(swOk,`${label}: service worker unavailable`);
 
-  const globals=await page.evaluate(()=>({hasState:typeof S!=='undefined',hasSupabase:typeof sb!=='undefined',go:typeof go,authModal:typeof authModal,proAccount:typeof proAccount,accountPage:typeof accountPage,runSearch:typeof window.runSearch,claim:typeof window.openClaimBusiness,editBusiness:typeof window.openEditBusiness,toggleFollow:typeof window.toggleFollow,followPrefs:typeof window.openFollowPreferences,saveFollowPrefs:typeof window.saveFollowPreferences,markNotificationRead:typeof window.markNotificationRead}));
-  assert(globals.hasState,`${label}: state S missing`);assert(globals.hasSupabase,`${label}: Supabase client missing`);assert.equal(globals.go,'function',`${label}: go() missing`);assert.equal(globals.runSearch,'function',`${label}: robust search patch missing`);assert.equal(globals.claim,'function',`${label}: business claim module missing`);assert.equal(globals.editBusiness,'function',`${label}: business edit module missing`);assert.equal(globals.toggleFollow,'function',`${label}: follow module missing`);assert.equal(globals.followPrefs,'function',`${label}: follow preferences missing`);assert.equal(globals.saveFollowPrefs,'function',`${label}: follow preferences save missing`);assert.equal(globals.markNotificationRead,'function',`${label}: notification read action missing`);
+  const globals=await page.evaluate(()=>({
+    hasState:typeof S!=='undefined',hasSupabase:typeof sb!=='undefined',go:typeof go,authModal:typeof authModal,proAccount:typeof proAccount,accountPage:typeof accountPage,
+    runSearch:typeof window.runSearch,claim:typeof window.openClaimBusiness,editBusiness:typeof window.openEditBusiness,
+    toggleFollow:typeof window.toggleFollow,followPrefs:typeof window.openFollowPreferences,saveFollowPrefs:typeof window.saveFollowPreferences,markNotificationRead:typeof window.markNotificationRead,
+    residentPrefs:typeof window.openResidentPreferences,saveResidentPrefs:typeof window.saveResidentPreferences,enableLocalRadius:typeof window.enableLocalRadius,disableLocalRadius:typeof window.disableLocalRadius,visibleBusinesses:typeof visibleBusinesses
+  }));
+  assert(globals.hasState,`${label}: state S missing`);assert(globals.hasSupabase,`${label}: Supabase client missing`);assert.equal(globals.go,'function',`${label}: go() missing`);assert.equal(globals.runSearch,'function',`${label}: robust search patch missing`);assert.equal(globals.claim,'function',`${label}: business claim module missing`);assert.equal(globals.editBusiness,'function',`${label}: business edit module missing`);assert.equal(globals.toggleFollow,'function',`${label}: follow module missing`);assert.equal(globals.followPrefs,'function',`${label}: follow preferences missing`);assert.equal(globals.saveFollowPrefs,'function',`${label}: follow preferences save missing`);assert.equal(globals.markNotificationRead,'function',`${label}: notification read action missing`);assert.equal(globals.residentPrefs,'function',`${label}: resident preferences missing`);assert.equal(globals.saveResidentPrefs,'function',`${label}: resident preferences save missing`);assert.equal(globals.enableLocalRadius,'function',`${label}: device geolocation activation missing`);assert.equal(globals.disableLocalRadius,'function',`${label}: device geolocation disable missing`);assert.equal(globals.visibleBusinesses,'function',`${label}: local-radius business filter missing`);
 
   // Logged-out follow action must ask for authentication and never write data.
   await closeAnyModal(page);
@@ -89,6 +94,14 @@ async function audit(viewport,label){
     assert.match(modalText,/connect|compte|inscri/i,`${label}: logged-out follow should request authentication`);
     await closeAnyModal(page);
   }
+
+  // Resident preferences must also stay behind authentication.
+  await page.evaluate(()=>window.openResidentPreferences());
+  await page.waitForTimeout(100);
+  const authModalLocator=page.locator('.modalback:visible,.modal:visible');
+  const authText=await authModalLocator.count()?await authModalLocator.last().innerText():await page.locator('body').innerText();
+  assert.match(authText,/connect|compte|inscri/i,`${label}: resident preferences should request authentication when logged out`);
+  await closeAnyModal(page);
 
   const severeFailed=failedRequests.filter(x=>!/(favicon|google|analytics|doubleclick)/i.test(x.url));
   assert.equal(pageErrors.length,0,`${label}: JS errors: ${pageErrors.join(' | ')}`);
