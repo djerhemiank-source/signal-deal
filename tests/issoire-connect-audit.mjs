@@ -84,7 +84,8 @@ async function audit(viewport,label){
   if(firstBusinessId){
     await page.evaluate(id=>window.toggleFollow(id),firstBusinessId);
     await page.waitForTimeout(150);
-    const modalText=await page.locator('.modalback:visible,.modal:visible').last().innerText().catch(()=>document.body.innerText);
+    const modalLocator=page.locator('.modalback:visible,.modal:visible');
+    const modalText=await modalLocator.count()?await modalLocator.last().innerText():await page.locator('body').innerText();
     assert.match(modalText,/connect|compte|inscri/i,`${label}: logged-out follow should request authentication`);
     await closeAnyModal(page);
   }
