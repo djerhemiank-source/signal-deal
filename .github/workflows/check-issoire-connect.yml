@@ -24,7 +24,7 @@ jobs:
           test -f issoire-connect/app/index.html
           test -f issoire-connect/app/manifest.webmanifest
           test -f issoire-connect/app/sw.js
-          for f in claim-patch.js pro-edit-patch.js search-patch.js follow-patch.js resident-patch.js job-patch.js community-patch.js; do
+          for f in claim-patch.js pro-edit-patch.js search-patch.js follow-patch.js resident-patch.js job-patch.js community-patch.js deals-patch.js; do
             test -f "issoire-connect/app/$f"
             node --check "issoire-connect/app/$f"
             grep -q "$f" issoire-connect/app/index.html
@@ -62,7 +62,7 @@ jobs:
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
             BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?deploy=${GITHUB_SHA}" 2>/dev/null || true)
-            if echo "$BODY" | grep -q 'v3-data-0.txt' && echo "$BODY" | grep -q 'claim-patch.js' && echo "$BODY" | grep -q 'search-patch.js'; then
+            if echo "$BODY" | grep -q 'v3-data-0.txt' && echo "$BODY" | grep -q 'deals-patch.js'; then
               echo 'Full Issoire Connect V3 loader is live.'
               exit 0
             fi
