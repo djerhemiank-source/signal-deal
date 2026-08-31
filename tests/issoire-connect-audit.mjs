@@ -1,0 +1,111 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+
+const BASE=process.env.IC_BASE||'http://127.0.0.1:4173/issoire-connect/';
+
+async function audit(viewport,label){
+  const browser=await chromium.launch({headless:true});
+  const context=await browser.newContext({viewport,serviceWorkers:'block'});
+  const page=await context.newPage();
+  const pageErrors=[];
+  const failedRequests=[];
+  page.on('pageerror',e=>pageErrors.push(String(e)));
+  page.on('requestfailed',r=>failedRequests.push({url:r.url(),error:r.failure()?.errorText||'failed'}));
+
+  let r=await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:20000});
+  assert(r?.ok(),`${label}: landing HTTP`);
+  assert.match(await page.title(),/Issoire Connect/i,`${label}: landing title`);
+
+  r=await page.goto(new URL('app/index.html?audit='+Date.now(),BASE).href,{waitUntil:'domcontentloaded',timeout:20000});
+  assert(r?.ok(),`${label}: app HTTP`);
+  await page.locator('[data-page]').first().waitFor({state:'visible',timeout:20000});
+  await page.waitForTimeout(1500);
+
+  const bodyText=(await page.locator('body').innerText()).trim();
+  assert(!/Erreur de chargement/i.test(bodyText),`${label}: V3 loader error`);
+  assert(bodyText.length>150,`${label}: app rendered too little content`);
+
+  const targets=await page.locator('[data-page]').evaluateAll(els=>[...new Set(els.map(e=>e.getAttribute('data-page')).filter(Boolean))]);
+  assert(targets.length>=4,`${label}: too few navigation targets: ${targets.join(',')}`);
+
+  const pages=[];
+  for(const target of targets){
+    const candidates=page.locator(`[data-page="${target}"]`);
+    const count=await candidates.count();
+    let clicked=false;
+    for(let i=0;i<count;i++){
+      const el=candidates.nth(i);
+      if(await el.isVisible().catch(()=>false)){
+        await el.click({timeout:5000}).catch(()=>{});
+        clicked=true;
+        break;
+      }
+    }
+    if(!clicked){
+      pages.push({target,visible:false});
+      continue;
+    }
+    await page.waitForTimeout(450);
+    const main=page.locator('main');
+    const text=(await main.innerText().catch(()=>'' )).trim();
+    const buttons=await main.locator('button').count().catch(()=>0);
+    const inputs=await main.locator('input,textarea,select').count().catch(()=>0);
+    const links=await main.locator('a').count().catch(()=>0);
+    const errorText=/erreur|impossible de charger|failed to fetch/i.test(text);
+    pages.push({target,visible:true,textLength:text.length,buttons,inputs,links,errorText,sample:text.slice(0,180).replace(/\s+/g,' ')});
+  }
+
+  // Dedicated search scenario.
+  const searchNav=page.locator('[data-page="search"]').filter({visible:true}).first();
+  if(await searchNav.count()){
+    await searchNav.click();
+    const q=page.locator('#globalQ');
+    await q.waitFor({state:'visible',timeout:5000});
+    await q.fill('boulangerie');
+    const searchBtn=page.locator('.searchbar button').first();
+    if(await searchBtn.count()) await searchBtn.click();
+    await page.waitForFunction(()=>document.querySelector('#searchOut')?.innerText.trim().length>0,null,{timeout:10000});
+    const searchText=await page.locator('#searchOut').innerText();
+    assert.match(searchText,/boulanger|commerce|résultat/i,`${label}: search did not return understandable output`);
+  }
+
+  // PWA assets must be reachable.
+  const manifestUrl=new URL('app/manifest.webmanifest',BASE).href;
+  const swUrl=new URL('app/sw.js',BASE).href;
+  const [manifestOk,swOk]=await page.evaluate(async ([m,s])=>{
+    const [mr,sr]=await Promise.all([fetch(m,{cache:'no-store'}),fetch(s,{cache:'no-store'})]);
+    return [mr.ok,sr.ok];
+  },[manifestUrl,swUrl]);
+  assert(manifestOk,`${label}: manifest unavailable`);
+  assert(swOk,`${label}: service worker unavailable`);
+
+  const globals=await page.evaluate(()=>({
+    hasState:typeof S!=='undefined',
+    hasSupabase:typeof sb!=='undefined',
+    go:typeof go,
+    authModal:typeof authModal,
+    proAccount:typeof proAccount,
+    accountPage:typeof accountPage,
+    runSearch:typeof window.runSearch,
+    claim:typeof window.openClaimBusiness,
+    editBusiness:typeof window.openEditBusiness
+  }));
+
+  assert(globals.hasState,`${label}: state S missing`);
+  assert(globals.hasSupabase,`${label}: Supabase client missing`);
+  assert.equal(globals.go,'function',`${label}: go() missing`);
+  assert.equal(globals.runSearch,'function',`${label}: robust search patch missing`);
+  assert.equal(globals.claim,'function',`${label}: business claim module missing`);
+  assert.equal(globals.editBusiness,'function',`${label}: business edit module missing`);
+
+  const severeFailed=failedRequests.filter(x=>!/(favicon|google|analytics|doubleclick)/i.test(x.url));
+  assert.equal(pageErrors.length,0,`${label}: JS errors: ${pageErrors.join(' | ')}`);
+
+  await browser.close();
+  return {label,targets,pages,globals,failedRequests:severeFailed.slice(0,20)};
+}
+
+const desktop=await audit({width:1440,height:900},'desktop');
+const mobile=await audit({width:390,height:844},'mobile');
+console.log('ISSOIRE CONNECT FUNCTION AUDIT PASS');
+console.log(JSON.stringify({base:BASE,desktop,mobile},null,2));
