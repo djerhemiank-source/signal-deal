@@ -3,6 +3,7 @@ if(typeof S==='undefined'||typeof sb==='undefined')return;
 const E=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const _accountPagePush=accountPage;
 const pushEndpoint='https://eazukvtjxeirbitukueb.supabase.co/functions/v1/ic-send-business-alert-push';
+const testPushEndpoint='https://eazukvtjxeirbitukueb.supabase.co/functions/v1/ic-test-push';
 S.pushState=S.pushState||{supported:false,permission:'default',subscribed:false};
 const uid=()=>S.session?.user?.id||null;
 function supported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window}
@@ -20,8 +21,13 @@ window.enablePushNotifications=async function(){
   const r=await reg();let sub=await r.pushManager.getSubscription();if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToBytes(key)});
   const j=sub.toJSON(),p256dh=j.keys?.p256dh,authKey=j.keys?.auth;if(!p256dh||!authKey)throw new Error('Abonnement Push incomplet.');
   const {error}=await sb.rpc('ic_upsert_push_subscription',{p_endpoint:sub.endpoint,p_p256dh:p256dh,p_auth_key:authKey,p_user_agent:navigator.userAgent});if(error)throw error;
-  await syncPushState();say('Notifications téléphone/PC activées.');accountPage();
+  await syncPushState();say('Notifications téléphone/PC activées. Vous pouvez maintenant envoyer un test.');accountPage();
  }catch(e){console.error('Issoire Connect push enable',e);say(String(e?.message||e).replaceAll('_',' '))}
+};
+window.testPushNotifications=async function(){
+ if(!S.session){say('Connectez-vous pour tester les notifications.');authModal('account');return}
+ await syncPushState();if(!S.pushState.subscribed)return say('Activez d’abord les notifications téléphone/PC sur cet appareil.');
+ try{const r=await fetch(testPushEndpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.session.access_token},body:'{}'});const out=await r.json().catch(()=>({}));if(!r.ok){if(out.error==='no_active_push_subscription')throw new Error('Aucun appareil Push actif enregistré. Réactivez les notifications.');throw new Error(out.error||'test_push_failed')}const sent=Number(out.sent||0);if(sent>0)say(`Notification test envoyée sur ${sent} appareil${sent>1?'s':''}. Elle doit apparaître dans quelques secondes.`);else say('Aucune notification test n’a pu être envoyée sur cet appareil.')}catch(e){console.warn('Issoire Connect push test',e);say(String(e?.message||e).replaceAll('_',' '))}
 };
 window.disablePushNotifications=async function(){
  if(!S.session)return authModal('account');if(!supported())return;
@@ -43,7 +49,7 @@ window.sendBusinessAlert=async function(id){
  const devices=Number(push?.sent||0);say(`Alerte envoyée à ${out?.recipient_count||0} abonné${(out?.recipient_count||0)>1?'s':''}.${devices?` ${devices} appareil${devices>1?'s':''} notifié${devices>1?'s':''} par Push.`:' La notification reste disponible dans Issoire Connect.'}`);
  if(typeof window.refreshProToolStats==='function')await window.refreshProToolStats(id);proAccount();
 };
-function pushSection(){if(!S.session)return '';return `<div class="sectionhead"><div><h2>🔔 Notifications téléphone / PC</h2><p>Recevez les alertes des commerces que vous suivez même lorsque Issoire Connect n’est pas au premier plan.</p></div></div><article class="card"><div class="muted" data-ic-push-status>${E(pushStatusText())}</div><div class="actions" style="margin-top:10px"><button class="btn brand" onclick="enablePushNotifications()">🔔 Activer</button><button class="btn" onclick="disablePushNotifications()">Désactiver</button><button class="btn" onclick="refreshPushStatus()">↻ Vérifier</button></div><p class="muted">Le navigateur demande votre autorisation. Vous pouvez la retirer à tout moment.</p></article>`}
+function pushSection(){if(!S.session)return '';return `<div class="sectionhead"><div><h2>🔔 Notifications téléphone / PC</h2><p>Recevez les alertes des commerces que vous suivez même lorsque Issoire Connect n’est pas au premier plan.</p></div></div><article class="card"><div class="muted" data-ic-push-status>${E(pushStatusText())}</div><div class="actions" style="margin-top:10px"><button class="btn brand" onclick="enablePushNotifications()">🔔 Activer</button><button class="btn" onclick="testPushNotifications()">🧪 Envoyer un test</button><button class="btn" onclick="disablePushNotifications()">Désactiver</button><button class="btn" onclick="refreshPushStatus()">↻ Vérifier</button></div><p class="muted">Le test envoie une notification uniquement aux appareils de votre compte. Le navigateur demande votre autorisation et vous pouvez la retirer à tout moment.</p></article>`}
 accountPage=function(){const out=_accountPagePush();if(S.session){try{main.insertAdjacentHTML('beforeend',pushSection());setTimeout(syncPushState,0)}catch(e){console.error('Issoire Connect push account',e)}}return out};
 async function handlePushLink(){const p=new URLSearchParams(location.search),type=p.get('notification'),id=p.get('id');if(!type||!id)return;for(let i=0;i<20;i++){if(typeof go==='function'&&Array.isArray(S.businesses)){if(type==='business'&&typeof viewBusiness==='function')viewBusiness(id);else if(type==='offer')go('deals');else if(type==='job')go('jobs');else if(type==='event')go('events');p.delete('notification');p.delete('id');const qs=p.toString();history.replaceState({},'',location.pathname+(qs?'?'+qs:'')+location.hash);return}await new Promise(r=>setTimeout(r,400))}}
 setTimeout(handlePushLink,500);
