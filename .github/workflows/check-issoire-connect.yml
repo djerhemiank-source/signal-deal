@@ -1,0 +1,44 @@
+name: Check Issoire Connect
+on:
+  push:
+    branches: ["issoire-connect-launch"]
+  pull_request:
+    branches: ["main"]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static validation
+        run: |
+          test -f issoire-connect/index.html
+          test -f issoire-connect/app/index.html
+          test -f issoire-connect/app/manifest.webmanifest
+          test -f issoire-connect/app/sw.js
+          node -e "JSON.parse(require('fs').readFileSync('issoire-connect/app/manifest.webmanifest','utf8'))"
+          python3 - <<'PY'
+          import re,pathlib
+          s=pathlib.Path('issoire-connect/app/index.html').read_text()
+          js='\n'.join(re.findall(r'<script>([\s\S]*?)</script>',s))
+          pathlib.Path('/tmp/ic.js').write_text(js)
+          PY
+          node --check /tmp/ic.js
+          test $(wc -c < issoire-connect/index.html) -lt 30000
+          test $(wc -c < issoire-connect/app/index.html) -lt 30000
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ic-http.log 2>&1 &
+          for i in {1..20}; do curl -fsS http://127.0.0.1:4173/issoire-connect/ >/dev/null && exit 0; sleep .5; done
+          cat /tmp/ic-http.log; exit 1
+      - name: Chromium smoke test
+        run: node tests/issoire-connect-smoke.mjs

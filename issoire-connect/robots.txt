@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /signal-deal/issoire-connect/
+Sitemap: https://djerhemiank-source.github.io/signal-deal/issoire-connect/sitemap.xml
