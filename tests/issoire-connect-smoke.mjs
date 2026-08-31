@@ -18,9 +18,10 @@ async function run(viewport){
  await page.locator('[data-page="search"]').click();
  await page.locator('#globalQ').waitFor({state:'visible',timeout:5000});
  await page.locator('#globalQ').fill('boulangerie');
+ await page.locator('.searchbar button').click();
  await page.waitForFunction(()=>document.querySelector('#searchOut')?.innerText.trim().length>0,null,{timeout:10000});
  const searchText=await page.locator('#searchOut').innerText();
- assert.match(searchText,/boulanger|résultat|commerce/i,'search did not render');
+ assert.match(searchText,/boulanger|commerce/i,'search did not render');
  const back=page.locator('#backBtn');assert(await back.isVisible(),'back button missing');
  await back.click();
  await page.waitForTimeout(250);
