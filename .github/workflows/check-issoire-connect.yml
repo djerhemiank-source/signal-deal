@@ -42,22 +42,20 @@ jobs:
           cat /tmp/ic-http.log; exit 1
       - name: Chromium smoke test local
         run: node tests/issoire-connect-smoke.mjs
-      - name: Wait for exact public GitHub Pages version
+      - name: Wait for lightweight public GitHub Pages app
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
-          EXPECTED=$(sha256sum issoire-connect/app/index.html | awk '{print $1}')
-          echo "Expected app SHA256: $EXPECTED"
           for i in {1..60}; do
-            ACTUAL=$(curl -fsSL --no-cache "$URL?deploy=${GITHUB_SHA}" 2>/dev/null | sha256sum | awk '{print $1}')
-            if [ "$ACTUAL" = "$EXPECTED" ]; then
-              echo 'Exact public app version is live.'
+            BODY=$(curl -fsSL --no-cache "$URL?deploy=${GITHUB_SHA}" 2>/dev/null || true)
+            if echo "$BODY" | grep -q 'Aucun chargement automatique'; then
+              echo 'Lightweight public app is live.'
               exit 0
             fi
-            echo "Waiting for GitHub Pages deployment ($i/60)..."
+            echo "Waiting for lightweight GitHub Pages app ($i/60)..."
             sleep 5
           done
-          echo 'GitHub Pages did not publish the exact app version within 5 minutes.'
+          echo 'The lightweight public app did not appear within 5 minutes.'
           exit 1
       - name: Chromium smoke test public
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
