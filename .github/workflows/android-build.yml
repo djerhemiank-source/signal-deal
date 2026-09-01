@@ -18,6 +18,7 @@ jobs:
     timeout-minutes: 25
     env:
       HAS_ANDROID_SIGNING: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' && secrets.ANDROID_STORE_PASSWORD != '' }}
+      EXPECTED_UPLOAD_CERT_SHA256: 5BC53CF9DB919AE3EAE39E2150EF932A68F5BD9B60554D51C44F8A5B0611D5B6
     steps:
       - uses: actions/checkout@v4
 
@@ -89,6 +90,15 @@ jobs:
           KEYSTORE="$RUNNER_TEMP/signal-deal-upload.jks"
           printf '%s' "$ANDROID_UPLOAD_KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
           chmod 600 "$KEYSTORE"
+
+          ACTUAL_CERT_SHA256=$(keytool -list -v \
+            -keystore "$KEYSTORE" \
+            -storepass "$ANDROID_STORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" \
+            | awk -F': ' '/SHA256:/{gsub(":", "", $2); print toupper($2); exit}')
+          test -n "$ACTUAL_CERT_SHA256"
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_UPLOAD_CERT_SHA256"
+
           export ANDROID_KEYSTORE_PATH="$KEYSTORE"
           cd android
           gradle --no-daemon --stacktrace bundleRelease
