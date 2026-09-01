@@ -50,6 +50,8 @@ async function run(name,viewport){
   assert.equal(diagnostics.manageButton,true,name+': bouton de gestion abonnement absent');
   assert.equal(diagnostics.manageFunction,true,name+': action de gestion abonnement absente');
   assert.equal(diagnostics.stripeSecretExposed,false,name+': clé Stripe secrète exposée dans le navigateur');
+  assert((await page.locator('a[href="./privacy.html"]').count())>0,name+': Privacy policy link missing');
+  assert((await page.locator('a[href="./delete-account.html"]').count())>0,name+': Account deletion link missing');
 
   await page.locator('a[href="#pricing"]:visible').first().click();
   assert.equal(await page.evaluate(()=>location.hash),'#pricing');
