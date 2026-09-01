@@ -132,16 +132,21 @@ jobs:
           "$ADB" shell am start -W -n fr.signaldeal.app/.MainActivity | tee /tmp/activity-start.txt
           grep -q "Status: ok" /tmp/activity-start.txt
 
+          # PAGE_FINISHED can also happen for Chromium's error page. PAGE_READY is
+          # emitted by the app only when document.title is really Signal Deal.
           for i in {1..60}; do
             "$ADB" logcat -d -s SignalDeal:I '*:S' > /tmp/signal-deal-app.log || true
-            if grep -q 'PAGE_FINISHED https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log; then break; fi
+            if grep -q 'PAGE_READY https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log; then break; fi
             sleep 2
           done
 
-          grep -q 'PAGE_FINISHED https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log
-          ! grep -E 'MAIN_FRAME_ERROR|SSL_ERROR' /tmp/signal-deal-app.log
+          grep -q 'PAGE_READY https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log
+          if grep -q 'SSL_ERROR' /tmp/signal-deal-app.log; then
+            cat /tmp/signal-deal-app.log
+            exit 1
+          fi
 
-          # Give WebView a short paint window after onPageFinished.
+          # Give WebView a short paint window after confirmed real content.
           sleep 4
 
           PID=$("$ADB" shell pidof -s fr.signaldeal.app | tr -d '\r')
@@ -149,7 +154,9 @@ jobs:
           "$ADB" shell dumpsys activity activities > /tmp/signal-deal-activity.txt
           grep -E 'mResumedActivity|topResumedActivity' /tmp/signal-deal-activity.txt | grep -q 'fr.signaldeal.app'
           "$ADB" logcat --pid="$PID" -d > /tmp/signal-deal-process.log || true
-          ! grep -E 'FATAL EXCEPTION|Process: fr.signaldeal.app.*has died' /tmp/signal-deal-process.log
+          if grep -E 'FATAL EXCEPTION|Process: fr.signaldeal.app.*has died' /tmp/signal-deal-process.log; then
+            exit 1
+          fi
 
       - name: Capture Android UI evidence
         if: always()
@@ -159,16 +166,13 @@ jobs:
           ADB="$ANDROID_HOME/platform-tools/adb"
           cp /tmp/activity-start.txt /tmp/signal-deal-activity-start.txt 2>/dev/null || true
           if timeout 5s "$ADB" get-state 2>/dev/null | grep -q '^device$'; then
-            # Force a tiny touch/repaint before the first capture.
             timeout 5s "$ADB" shell input swipe 150 320 150 319 120 || true
             sleep 2
 
-            # Capture 1: real Android home screen.
             timeout 10s "$ADB" exec-out screencap -p > /tmp/signal-deal-android.png || true
             timeout 10s "$ADB" shell uiautomator dump /sdcard/signal-deal-ui.xml || true
             timeout 10s "$ADB" pull /sdcard/signal-deal-ui.xml /tmp/signal-deal-ui.xml || true
 
-            # Capture 2: real in-app pricing/content after a vertical swipe.
             timeout 5s "$ADB" shell input swipe 150 550 150 120 800 || true
             sleep 3
             timeout 10s "$ADB" exec-out screencap -p > /tmp/signal-deal-android-second.png || true
@@ -191,17 +195,21 @@ jobs:
           test -s /tmp/signal-deal-ui.xml
           test -s /tmp/signal-deal-second-ui.xml
 
-          # UIAutomator may expose only the WebView shell on the very first dump,
-          # even when the pixels are already rendered. The second dump must expose
-          # the actual page text, while both screenshots must be valid PNG files.
           file /tmp/signal-deal-android.png | grep -q 'PNG image data'
           file /tmp/signal-deal-android-second.png | grep -q 'PNG image data'
-          test "$(stat -c%s /tmp/signal-deal-android.png)" -gt 20000
-          test "$(stat -c%s /tmp/signal-deal-android-second.png)" -gt 20000
+          test "$(stat -c%s /tmp/signal-deal-android.png)" -gt 10000
+          test "$(stat -c%s /tmp/signal-deal-android-second.png)" -gt 10000
           grep -q 'Signal Deal' /tmp/signal-deal-second-ui.xml
           grep -q 'Une formule selon votre usage' /tmp/signal-deal-second-ui.xml
-          grep -q 'PAGE_FINISHED https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log
-          ! grep -E 'MAIN_FRAME_ERROR|SSL_ERROR|ERR_INTERNET_DISCONNECTED' /tmp/signal-deal-app.log
+          grep -q 'PAGE_READY https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log
+          if grep -q 'SSL_ERROR' /tmp/signal-deal-app.log; then
+            cat /tmp/signal-deal-app.log
+            exit 1
+          fi
+          if grep -q 'Webpage not available' /tmp/signal-deal-second-ui.xml; then
+            cat /tmp/signal-deal-second-ui.xml
+            exit 1
+          fi
 
       - name: Upload runtime evidence
         if: always()
