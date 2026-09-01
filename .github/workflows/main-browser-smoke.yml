@@ -1,0 +1,50 @@
+name: Smoke Signal Deal Main Chromium
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/signal-deal-main-http.log 2>&1 &
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 0.5
+          done
+          exit 1
+      - name: Chromium smoke local
+        run: node tests/root-browser-smoke.mjs
+      - name: Wait for public deployment
+        run: |
+          URL='https://djerhemiank-source.github.io/signal-deal/'
+          for i in {1..40}; do
+            BODY=$(curl -fsSL --max-time 10 "$URL" || true)
+            if printf '%s' "$BODY" | grep -q 'Interface stable'; then exit 0; fi
+            sleep 3
+          done
+          exit 1
+      - name: Chromium smoke public
+        env:
+          SMOKE_BASE_URL: https://djerhemiank-source.github.io/signal-deal/
+        run: node tests/root-browser-smoke.mjs
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/signal-deal-main-http.log || true
