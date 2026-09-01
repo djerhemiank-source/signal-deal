@@ -1,0 +1,40 @@
+name: Patch Play compliance
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/patch-play-compliance.py
+      - .github/workflows/patch-play-compliance.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply compliance patch
+        run: python3 scripts/patch-play-compliance.py
+
+      - name: Validate patch
+        run: |
+          grep -q './privacy.html' index.html
+          grep -q './delete-account.html' index.html
+          grep -q 'deleteAccountBtn' index.html
+          grep -q 'Privacy policy link missing' tests/root-browser-smoke.mjs
+
+      - name: Commit patch and remove temporary files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/patch-play-compliance.yml scripts/patch-play-compliance.py
+          git add index.html tests/root-browser-smoke.mjs
+          git commit -m 'Ajouter confidentialité et suppression de compte'
+          git push origin HEAD:main
