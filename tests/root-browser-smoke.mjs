@@ -2,6 +2,17 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 
 const BASE=process.env.SMOKE_BASE_URL||'http://127.0.0.1:4173/';
+const PORTAL_URL='https://eazukvtjxeirbitukueb.supabase.co/functions/v1/signal-deal-billing-portal';
+const SUPABASE_KEY='sb_publishable_OIOSgs39cGT6s34eVuexIA_5bZGmZVj';
+
+async function checkBillingPortalSecurity(){
+  const response=await fetch(PORTAL_URL,{
+    method:'POST',
+    headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},
+    body:'{}'
+  });
+  assert.equal(response.status,401,'billing portal: une requête sans session doit être refusée');
+}
 
 async function run(name,viewport){
   const browser=await chromium.launch({headless:true});
@@ -26,13 +37,19 @@ async function run(name,viewport){
       controls:document.querySelectorAll('button,a').length,
       inert:buttons.filter(b=>!b.getAttribute('onclick')&&b.type!=='submit').map(b=>b.textContent.trim()),
       observers:/MutationObserver|setInterval|requestAnimationFrame/.test(html),
-      brandHref:document.querySelector('.brand')?.getAttribute('href')
+      brandHref:document.querySelector('.brand')?.getAttribute('href'),
+      manageButton:Boolean(document.getElementById('manageSubscriptionBtn')),
+      manageFunction:typeof manageSubscription==='function',
+      stripeSecretExposed:/sk_(live|test)_/i.test(html)
     };
   });
   assert(diagnostics.controls>=15,name+': contrôles manquants ('+diagnostics.controls+')');
   assert.deepEqual(diagnostics.inert,[],name+': boutons sans action');
   assert.equal(diagnostics.observers,false,name+': boucle DOM/minuterie détectée');
   assert.equal(diagnostics.brandHref,'./',name+': lien accueil invalide');
+  assert.equal(diagnostics.manageButton,true,name+': bouton de gestion abonnement absent');
+  assert.equal(diagnostics.manageFunction,true,name+': action de gestion abonnement absente');
+  assert.equal(diagnostics.stripeSecretExposed,false,name+': clé Stripe secrète exposée dans le navigateur');
 
   await page.locator('a[href="#pricing"]:visible').first().click();
   assert.equal(await page.evaluate(()=>location.hash),'#pricing');
@@ -58,6 +75,8 @@ async function run(name,viewport){
     assert.equal(authRequests,0,name+': paiement sans session a appelé Auth');
   }
 
+  assert.equal(await page.locator('#manageSubscriptionBtn').evaluate(el=>getComputedStyle(el).display),'none',name+': gestion abonnement visible sans formule payante');
+
   for(let i=0;i<30;i++){
     await page.click(i%2?'#signupTab':'#loginTab');
     await page.locator('a[href="#pricing"]:visible').first().click();
@@ -70,6 +89,7 @@ async function run(name,viewport){
   return {name,loadMs,heapMb:heap?Math.round(heap/1024/1024):null,controls:diagnostics.controls};
 }
 
+await checkBillingPortalSecurity();
 const desktop=await run('desktop',{width:1440,height:900});
 const mobile=await run('mobile',{width:390,height:844});
-console.log('ROOT SMOKE PASS',JSON.stringify({desktop,mobile}));
+console.log('ROOT SMOKE PASS',JSON.stringify({desktop,mobile,billingPortalUnauthenticated:'blocked'}));
