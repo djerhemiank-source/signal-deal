@@ -107,7 +107,7 @@ public class MainActivity extends Activity {
         view.setWebViewClient(new SignalDealWebViewClient());
         view.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
             if (url != null && url.startsWith("blob:")) {
-                Toast.makeText(this, "Utilisez le bouton Export CSV de Signal Deal.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Utilisez le bouton Export CSV de ZoneProspect 360.", Toast.LENGTH_SHORT).show();
                 return;
             }
             openExternal(Uri.parse(url));
@@ -199,7 +199,7 @@ public class MainActivity extends Activity {
             super.onPageFinished(view, url);
             Log.i(TAG, "PAGE_FINISHED " + url);
             view.evaluateJavascript("document.title || ''", title -> {
-                if (title != null && title.contains("Signal Deal")) {
+                if (title != null && title.contains("ZoneProspect 360")) {
                     retryHandler.removeCallbacksAndMessages(null);
                     networkRetryCount = 0;
                     Log.i(TAG, "PAGE_READY " + url);
@@ -226,7 +226,7 @@ public class MainActivity extends Activity {
                     return;
                 }
                 Toast.makeText(MainActivity.this,
-                    "Signal Deal est momentanément inaccessible. Vérifiez votre connexion.",
+                    "ZoneProspect 360 est momentanément inaccessible. Vérifiez votre connexion.",
                     Toast.LENGTH_LONG).show();
             }
         }

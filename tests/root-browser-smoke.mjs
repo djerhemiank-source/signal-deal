@@ -26,14 +26,14 @@ async function checkDeletionAndCompliance(){
   const privacy=await fetch(new URL('privacy.html',BASE));
   assert(privacy.ok,'politique de confidentialité inaccessible');
   const privacyText=await privacy.text();
-  assert.match(privacyText,/Politique de confidentialité — Signal Deal/i);
-  assert.match(privacyText,/Supprimer mon compte Signal Deal/i);
+  assert.match(privacyText,/Politique de confidentialité — ZoneProspect 360/i);
+  assert.match(privacyText,/Supprimer mon compte ZoneProspect 360/i);
 
   const deletion=await fetch(new URL('delete-account.html',BASE));
   assert(deletion.ok,'page suppression de compte inaccessible');
   const deletionText=await deletion.text();
   assert.match(deletionText,/signal-deal-delete-account/);
-  assert.match(deletionText,/Supprimer mon compte Signal Deal/i);
+  assert.match(deletionText,/Supprimer mon compte ZoneProspect 360/i);
 }
 
 async function run(name,viewport){
@@ -107,7 +107,7 @@ async function run(name,viewport){
   await page.evaluate(()=>{session={user:{id:'qa-paid-user',email:'qa-paid@example.com'}};currentPlan='pro';startCheckout('agency')});
   await page.waitForTimeout(100);
   assert.equal(checkoutRequests,0,name+': un compte déjà payant a ouvert un nouveau Checkout Stripe');
-  assert.equal(page.url(),beforePaidGuard,name+': un compte déjà payant a quitté Signal Deal vers un nouveau paiement');
+  assert.equal(page.url(),beforePaidGuard,name+': un compte déjà payant a quitté ZoneProspect 360 vers un nouveau paiement');
   await page.evaluate(()=>{session=null;currentPlan='free'});
 
   assert.equal(await page.locator('#manageSubscriptionBtn').evaluate(el=>getComputedStyle(el).display),'none',name+': gestion abonnement visible sans formule payante');

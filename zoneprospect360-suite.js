@@ -47,7 +47,7 @@
     document.getElementById('zpCsvInput').addEventListener('change',handleCsvFile);
   }
 
-  async function importCsvClick(){const caps=ZP.caps||await loadCaps();if(!caps?.can_import_contacts){toast('L’import CSV est disponible à partir de la formule Essentiel.');return}document.getElementById('zpCsvInput')?.click()}
+  async function importCsvClick(){const caps=await loadCaps();if(!caps?.can_import_contacts){toast('L’import CSV est disponible à partir de la formule Essentiel.');return}document.getElementById('zpCsvInput')?.click()}
   function parseCsv(text){
     const lines=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim()); if(!lines.length)return [];
     const sep=(lines[0].match(/;/g)||[]).length>=(lines[0].match(/,/g)||[]).length?';':',';
@@ -60,20 +60,22 @@
     const file=ev.target.files?.[0]; ev.target.value=''; if(!file)return;
     const rows=parseCsv(await file.text()); if(!rows.length){toast('CSV vide ou illisible.');return}
     const target=items(); const seen=new Set(target.map(x=>x.key)); let added=0;
+    const limit=(()=>{try{return Number(planMax||5)}catch{return 5}})();
     for(const r of rows){
+      if(target.length>=limit)break;
       const company=pick(r,['entreprise','company','societe','société','nom','raison_sociale']); if(!company)continue;
       const siren=pick(r,['siren']),siret=pick(r,['siret']),city=pick(r,['ville','city']),postal=pick(r,['code_postal','postal_code','cp']);
       const email=pick(r,['email','e-mail','mail']),phone=pick(r,['telephone','téléphone','phone','tel']),contact=pick(r,['contact','nom_contact','contact_name']);
       const key=`import:${siret||siren||company+'-'+city}`.toLowerCase(); if(seen.has(key))continue; seen.add(key);
       target.push({key,lead_kind:'business',company,title:'Prospect importé',segment_label:'Import CSV',siren:siren||null,siret:siret||null,postal_code:postal||null,city:city||null,score:70,signal:'Prospect importé par l’utilisateur.',contact_name:contact||null,contact_email:email||null,contact_phone:phone||null,contactability:(email||phone)?'Coordonnées importées par l’utilisateur — statut de vérification inconnu.':'Aucune coordonnée importée.',source_label:'Import CSV utilisateur',source_url:null});
-      added++; if(target.length>=Math.max(Number(window.planMax||500),500))break;
+      added++;
     }
     try{renderResults()}catch{}
     decorateCards(); toast(`${added} prospect(s) importé(s) depuis le CSV. Les coordonnées importées ne sont pas marquées comme vérifiées.`);
   }
 
   async function exportCsv(){
-    const caps=ZP.caps||await loadCaps(); if(!caps?.can_export){toast('L’export CSV est disponible avec les formules Pro et Agence.');return}
+    const caps=await loadCaps(); if(!caps?.can_export){toast('L’export CSV est disponible avec les formules Pro et Agence.');return}
     const rows=items(); if(!rows.length){toast('Aucun prospect à exporter.');return}
     const headers=['entreprise','siren','siret','type','secteur','ville','code_postal','distance_km','score','contact','email','telephone','statut_contact','source'];
     const out=[headers.join(';')];
@@ -86,7 +88,7 @@
     return {profession:document.getElementById('profession')?.value.trim()||'',postal_code:document.getElementById('postalCode')?.value.trim()||null,city:document.getElementById('city')?.value.trim()||null,radius_km:Number(document.getElementById('radius')?.value||25),target_types:vals('.targetType'),target_segments:vals('.segCheck')};
   }
   async function saveSearch(){
-    const caps=ZP.caps||await loadCaps(); if(!caps?.can_saved_searches){toast('Les recherches sauvegardées sont disponibles à partir de la formule Essentiel.');return}
+    const caps=await loadCaps(); if(!caps?.can_saved_searches){toast('Les recherches sauvegardées sont disponibles à partir de la formule Essentiel.');return}
     if(!hasSession()){toast('Connexion nécessaire.');return}
     const s=currentSearch(); if(!s.profession||(!s.postal_code&&!s.city)){toast('Configurez d’abord votre métier et votre zone.');return}
     const name=window.prompt('Nom de cette recherche :',`${s.profession} · ${s.city||s.postal_code||''}`); if(!name)return;
@@ -94,7 +96,7 @@
     toast(error?'Impossible de sauvegarder : '+error.message:'Recherche sauvegardée.');
   }
   async function listSavedSearches(){
-    const caps=ZP.caps||await loadCaps(); if(!caps?.can_saved_searches){toast('Les recherches sauvegardées sont disponibles à partir de la formule Essentiel.');return}
+    const caps=await loadCaps(); if(!caps?.can_saved_searches){toast('Les recherches sauvegardées sont disponibles à partir de la formule Essentiel.');return}
     const c=appClient(); const {data,error}=await c.from('zp360_saved_searches').select('*').eq('user_id',session.user.id).order('updated_at',{ascending:false}).limit(50);
     if(error){toast('Recherches sauvegardées indisponibles.');return}
     modal('Mes recherches sauvegardées',data?.length?`<table class="zp360-table"><thead><tr><th>Nom</th><th>Ciblage</th><th>Actions</th></tr></thead><tbody>${data.map(s=>`<tr><td><b>${e(s.name)}</b></td><td>${e(s.profession)} · ${e(s.city||s.postal_code||'')} · ${e(s.radius_km)} km</td><td><button class="btn" data-zp-load="${e(s.id)}">Charger</button> <button class="btn danger" data-zp-del="${e(s.id)}">Supprimer</button></td></tr>`).join('')}</tbody></table>`:'<p>Aucune recherche sauvegardée.</p>',data||[]);
@@ -110,7 +112,7 @@
 
   async function enrich(index,card,button){
     const x=items()[index]; if(!x||x.lead_kind!=='business')return;
-    const caps=ZP.caps||await loadCaps(); if(!caps?.can_company_enrich){toast('Enrichissement indisponible pour cette formule.');return}
+    const caps=await loadCaps(); if(!caps?.can_company_enrich){toast('Enrichissement indisponible pour cette formule.');return}
     button.disabled=true; const old=button.textContent; button.textContent='Enrichissement…';
     try{
       const c=appClient(); const {data,error}=await c.functions.invoke('zoneprospect360-enrich-company',{body:{prospect_key:x.key,siren:x.siren||null,siret:x.siret||null,company_name:x.company||null}});
