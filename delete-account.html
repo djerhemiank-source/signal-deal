@@ -11,14 +11,15 @@
 </head>
 <body><main class="wrap">
 <a class="back" href="./">← Retour à Signal Deal</a>
-<h1>Demander la suppression de mon compte Signal Deal</h1>
+<h1>Supprimer mon compte Signal Deal</h1>
 <p class="muted">Cette page reste accessible sur le Web même si vous avez désinstallé l’application Android.</p>
 
 <div class="card">
 <h2>Ce qui sera supprimé</h2>
-<p>Après traitement de la demande, nous supprimons le compte Signal Deal ainsi que les données directement associées au service, notamment le pipeline personnel et l’association de l’abonnement au compte.</p>
+<p>La suppression efface les données directement rattachées à Signal Deal : pipeline personnel, prospects locaux enregistrés, commissions enregistrées et association locale de l’abonnement.</p>
 <p>Les documents de paiement ou données qu’un prestataire de paiement doit conserver pour des obligations comptables, fiscales, de sécurité ou de prévention de la fraude peuvent être conservés selon ses obligations légales.</p>
-<p class="warn"><strong>Abonnement payant :</strong> si une formule payante est encore active, la demande est enregistrée immédiatement mais la résiliation doit être finalisée avant la suppression définitive du compte afin d’éviter une facturation sans accès.</p>
+<p class="warn"><strong>Abonnement payant :</strong> si une formule live peut encore générer une facturation, la suppression définitive est bloquée et la demande reste enregistrée jusqu’à la résiliation. Cela évite toute facturation d’un compte auquel vous n’auriez plus accès.</p>
+<p class="muted">Signal Deal partage actuellement l’infrastructure d’authentification avec un autre service du même projet. Si cette identité est également utilisée par cet autre service, seules les données Signal Deal sont supprimées et l’identité technique globale est conservée pour ne pas supprimer l’autre compte.</p>
 </div>
 
 <div class="card" id="requestCard">
@@ -32,15 +33,15 @@
 <div id="loginMsg" class="msg"></div>
 
 <div id="deleteArea" style="display:none;margin-top:24px;border-top:1px solid var(--line);padding-top:18px">
-<h2>2. Envoyer la demande</h2>
+<h2>2. Confirmer la suppression</h2>
 <p id="accountInfo" class="muted"></p>
-<label><input id="confirmDelete" type="checkbox" style="width:auto;margin-right:8px">Je demande la suppression de mon compte Signal Deal et des données associées.</label>
-<button id="deleteBtn" type="button" onclick="requestDeletion()">Demander la suppression du compte</button>
+<label><input id="confirmDelete" type="checkbox" style="width:auto;margin-right:8px">Je demande la suppression définitive de mon compte Signal Deal et des données associées.</label>
+<button id="deleteBtn" type="button" onclick="requestDeletion()">Supprimer mon compte Signal Deal</button>
 <div id="deleteMsg" class="msg"></div>
 </div>
 </div>
 
-<p class="muted">Délai de traitement annoncé : au plus 30 jours. Consultez aussi la <a href="./privacy.html">politique de confidentialité Signal Deal</a>.</p>
+<p class="muted">Consultez la <a href="./privacy.html">politique de confidentialité Signal Deal</a>.</p>
 </main>
 <script>
 const SUPABASE_URL='https://eazukvtjxeirbitukueb.supabase.co';
@@ -55,11 +56,11 @@ async function showSession(s){
   if(!s){area.style.display='none';return;}
   area.style.display='block';
   let plan='Gratuit',status='actif';
-  const {data}=await client.from('subscriptions').select('plan,status,cancel_at_period_end').eq('user_id',s.user.id).eq('livemode',true).maybeSingle();
+  const {data}=await client.from('subscriptions').select('plan,status,cancel_at_period_end,current_period_end').eq('user_id',s.user.id).eq('livemode',true).order('updated_at',{ascending:false}).limit(1).maybeSingle();
   if(data){
     const names={essential:'Essentiel',pro:'Pro',agency:'Agence',free:'Gratuit'};
     plan=names[data.plan]||data.plan||'Gratuit';status=data.status||'actif';
-    if(data.cancel_at_period_end)status+=' — résiliation déjà programmée';
+    if(data.cancel_at_period_end)status+=' — résiliation programmée';
   }
   info.textContent='Compte : '+s.user.email+' · Formule : '+plan+' · Statut : '+status+'.';
 }
@@ -68,7 +69,7 @@ async function login(){
   const email=document.getElementById('email').value.trim();
   const password=document.getElementById('password').value;
   const msg=document.getElementById('loginMsg');
-  msg.textContent='';
+  msg.className='msg';msg.textContent='';
   if(!email||password.length<8){msg.textContent='Saisissez votre e-mail et votre mot de passe Signal Deal.';return;}
   const {data,error}=await client.auth.signInWithPassword({email,password});
   if(error){msg.textContent='Connexion impossible : '+error.message;return;}
@@ -80,15 +81,24 @@ async function requestDeletion(){
   const btn=document.getElementById('deleteBtn');
   const msg=document.getElementById('deleteMsg');
   if(!session){msg.textContent='Connectez-vous d’abord.';return;}
-  if(!document.getElementById('confirmDelete').checked){msg.textContent='Cochez la confirmation avant d’envoyer la demande.';return;}
-  btn.disabled=true;msg.textContent='Enregistrement de la demande…';msg.className='msg';
-  const {error}=await client.from('account_deletion_requests').insert({user_id:session.user.id,email:session.user.email,status:'requested'});
+  if(!document.getElementById('confirmDelete').checked){msg.textContent='Cochez la confirmation avant de supprimer le compte.';return;}
+  btn.disabled=true;msg.textContent='Suppression sécurisée en cours…';msg.className='msg';
+  const {data,error}=await client.functions.invoke('signal-deal-delete-account',{body:{confirm:'DELETE_SIGNAL_DEAL_ACCOUNT'}});
   if(error){
-    if(String(error.code)==='23505') msg.textContent='Une demande existe déjà pour ce compte.';
-    else msg.textContent='Impossible d’enregistrer la demande : '+error.message;
+    let detail=null;
+    try{detail=await error.context.json()}catch(_e){}
+    if(detail?.error==='active_subscription_must_be_cancelled'){
+      msg.innerHTML='Votre demande est enregistrée, mais une formule payante peut encore facturer. Résiliez d’abord l’abonnement depuis Signal Deal sur le Web, puis revenez sur cette page pour finaliser la suppression.';
+      msg.className='msg warn';btn.disabled=false;return;
+    }
+    msg.textContent='La suppression n’a pas pu être finalisée. Aucune suppression partielle supplémentaire ne sera lancée depuis cette page. Réessayez ou contactez le support Signal Deal.';
     btn.disabled=false;return;
   }
-  msg.textContent='✓ Votre demande de suppression a été enregistrée. Elle sera traitée au plus tard sous 30 jours.';msg.className='msg ok';
+  if(!data?.deleted){msg.textContent='La suppression n’a pas été confirmée par le serveur.';btn.disabled=false;return;}
+  msg.textContent=data.identity_deleted===false
+    ? '✓ Les données et l’accès Signal Deal ont été supprimés. Votre identité technique globale a été conservée uniquement parce qu’elle est utilisée par un autre service.'
+    : '✓ Votre compte Signal Deal et ses données ont été supprimés.';
+  msg.className='msg ok';
   document.getElementById('confirmDelete').disabled=true;
   await client.auth.signOut({scope:'local'});
 }
