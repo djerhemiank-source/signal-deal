@@ -12,6 +12,7 @@ const accounts=[
 async function toast(page,text){await page.waitForFunction(t=>document.querySelector('#toast')?.textContent.includes(t),text,{timeout:15000});}
 async function closeModal(page){const m=page.locator('.modalback');if(await m.isVisible().catch(()=>false))await m.click();}
 async function clickTile(page,text){const b=page.locator('button.tile',{hasText:text}).first();await b.waitFor({state:'visible',timeout:8000});await b.click();}
+async function radiusButton(page,km){const b=page.locator('button',{hasText:`${km} km`}).first();await b.waitFor({state:'visible',timeout:8000});return b;}
 async function publishProduct(page,label){await clickTile(page,'Produit/service');await page.locator('#pt').fill(`E2E produit ${label}`);await page.locator('#pd').fill('Produit temporaire de validation');await page.locator('#pp').fill('12.50');await page.locator('#modalBody button',{hasText:'Publier'}).click();await toast(page,'Produit/service publié');}
 async function publishOffer(page,label,type='Promotion'){
  await clickTile(page,type);
@@ -35,8 +36,8 @@ for(const a of accounts){
  try{await page.waitForFunction(name=>(document.querySelector('main')?.innerText||'').includes(name),a.business,{timeout:20000})}catch(err){const diag=await page.evaluate(()=>({toast:document.querySelector('#toast')?.textContent||'',main:(document.querySelector('main')?.innerText||'').slice(0,1200),modal:(document.querySelector('#modalBody')?.innerText||'').slice(0,800),session:!!globalThis.S?.session,uid:globalThis.S?.session?.user?.id||null,role:globalThis.S?.profile?.role||null,myBusinesses:(globalThis.S?.myBusinesses||[]).map(x=>({id:x.id,name:x.name,plan:x.plan}))}));console.log('AUTH_DIAG',a.plan,JSON.stringify({authResponses,diag}));throw err}
  await page.waitForFunction(()=>document.querySelector('#icPlanPanel'),null,{timeout:8000});
  const body=await page.locator('main').innerText();assert.match(body,new RegExp(a.plan.replace('+','\\+')));assert(body.includes(a.price),`${a.plan} price missing`);
- const maxBtn=page.locator('.radiuschoices button',{hasText:`${a.max} km`}).first();await maxBtn.waitFor({state:'visible',timeout:8000});assert(!(await maxBtn.getAttribute('class')||'').includes('locked'),`${a.plan} max radius locked`);
- if(a.next){const locked=page.locator('.radiuschoices button',{hasText:`${a.next} km`}).first();assert((await locked.getAttribute('class')||'').includes('locked'),`${a.plan} next radius should be locked`);await locked.click();assert.match(await page.locator('#modalBody').innerText(),/Étendre votre zone|forfait/i);await closeModal(page)}
+ const maxBtn=await radiusButton(page,a.max);assert(!(await maxBtn.getAttribute('class')||'').includes('locked'),`${a.plan} max radius locked`);
+ if(a.next){const locked=await radiusButton(page,a.next);assert((await locked.getAttribute('class')||'').includes('locked'),`${a.plan} next radius should be locked`);await locked.click();assert.match(await page.locator('#modalBody').innerText(),/Étendre votre zone|forfait/i);await closeModal(page)}
  await publishProduct(page,a.plan);await publishOffer(page,a.plan,'Promotion');
  if(a.plan==='Essential'){
    await publishOffer(page,a.plan,'Invendu');
