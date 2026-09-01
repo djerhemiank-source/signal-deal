@@ -25,9 +25,12 @@ go=function(page,...args){
  desired=page;
  clearTimeout(initialTimer);
  clearTimeout(recoveryTimer);
+ // Neutralise seulement l'appel synchrone éventuel de l'ancien routeur.
+ // Le vrai rendu est restauré immédiatement afin que les boutons de filtre
+ // ne puissent jamais tomber sur la fonction neutre pendant les 650 ms d'attente.
  window.renderDirectoryPage=_noopDirectory;
  let result;
- try{result=_legacyWrappedGo(page,...args)}catch(err){window.renderDirectoryPage=_enhancedDirectory;throw err}
+ try{result=_legacyWrappedGo(page,...args)}finally{window.renderDirectoryPage=_enhancedDirectory}
  initialTimer=setTimeout(()=>renderStable(page),650);
  return result;
 };
