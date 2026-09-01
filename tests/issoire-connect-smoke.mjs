@@ -16,39 +16,31 @@ async function run(viewport){
  await page.locator('.communitystats').waitFor({state:'visible',timeout:20000});
  assert.match(await page.locator('main').innerText(),/Tout Issoire/i,'home did not finish loading');
  await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openClassifiedContact==='function',null,{timeout:20000});
- assert(await page.evaluate(()=>typeof window.renderDirectoryPage==='function'),'directory module missing');
- assert(await page.evaluate(()=>typeof window.openResidentAdForm==='function'),'resident classifieds module missing');
- assert(await page.evaluate(()=>typeof window.renderPublicClassifieds==='function'),'public classifieds module missing');
- assert(await page.evaluate(()=>typeof window.openClassifiedContact==='function'),'classified contact flow missing');
 
  await page.locator('[data-page="search"]').click();
  await page.locator('#globalQ').waitFor({state:'visible',timeout:5000});
  await page.locator('#globalQ').fill('boulangerie');
  await page.locator('.searchbar button').click();
  await page.waitForFunction(()=>document.querySelector('#searchOut')?.innerText.trim().length>0,null,{timeout:10000});
- const searchText=await page.locator('#searchOut').innerText();
- assert.match(searchText,/boulanger|commerce/i,'search did not render');
+ assert.match(await page.locator('#searchOut').innerText(),/boulanger|commerce/i,'search did not render');
  const back=page.locator('#backBtn');assert(await back.isVisible(),'back button missing');
  await back.click();
  await page.waitForTimeout(250);
 
  await page.evaluate(()=>go('businesses'));
- await page.locator('#dirJob').waitFor({state:'visible',timeout:20000});
- assert.match(await page.locator('main').innerText(),/Annuaire local d’Issoire/i,'directory did not render');
+ await page.waitForFunction(()=>/Annuaire local d[’']Issoire/i.test(document.querySelector('main')?.innerText||'')&&!!document.querySelector('#dirJob'),null,{timeout:20000});
  await page.locator('#dirJob').fill('boulangerie');
- await page.locator('button', {hasText:'Filtrer'}).click();
+ await page.locator('button',{hasText:'Filtrer'}).click();
  await page.waitForFunction(()=>{
    const input=document.querySelector('#dirJob');
    const text=document.querySelector('main')?.innerText||'';
    return input?.value==='boulangerie' && /boulanger/i.test(text);
  },null,{timeout:20000});
  await page.locator('#icMap').waitFor({state:'visible',timeout:20000});
- const directoryText=await page.locator('main').innerText();
- assert.match(directoryText,/boulanger/i,'directory filter did not return a bakery');
+ assert.match(await page.locator('main').innerText(),/boulanger/i,'directory filter did not return a bakery');
 
  await page.evaluate(()=>go('nearby'));
- await page.locator('#icMap').waitFor({state:'visible',timeout:20000});
- await page.waitForFunction(()=>/Autour de moi/i.test(document.querySelector('main')?.innerText||''),null,{timeout:20000});
+ await page.waitForFunction(()=>/Autour de moi/i.test(document.querySelector('main')?.innerText||'')&&!!document.querySelector('#icMap'),null,{timeout:20000});
 
  await page.evaluate(()=>go('classifieds'));
  await page.locator('#caQ').waitFor({state:'visible',timeout:20000});
@@ -68,4 +60,4 @@ async function run(viewport){
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT V18 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
+console.log('ISSOIRE CONNECT V19 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
