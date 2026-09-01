@@ -190,8 +190,17 @@ jobs:
           test -s /tmp/signal-deal-android-second.png
           test -s /tmp/signal-deal-ui.xml
           test -s /tmp/signal-deal-second-ui.xml
-          grep -q 'Signal Deal' /tmp/signal-deal-ui.xml
+
+          # UIAutomator may expose only the WebView shell on the very first dump,
+          # even when the pixels are already rendered. The second dump must expose
+          # the actual page text, while both screenshots must be valid PNG files.
+          file /tmp/signal-deal-android.png | grep -q 'PNG image data'
+          file /tmp/signal-deal-android-second.png | grep -q 'PNG image data'
+          test "$(stat -c%s /tmp/signal-deal-android.png)" -gt 20000
+          test "$(stat -c%s /tmp/signal-deal-android-second.png)" -gt 20000
           grep -q 'Signal Deal' /tmp/signal-deal-second-ui.xml
+          grep -q 'Une formule selon votre usage' /tmp/signal-deal-second-ui.xml
+          grep -q 'PAGE_FINISHED https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log
           ! grep -E 'MAIN_FRAME_ERROR|SSL_ERROR|ERR_INTERNET_DISCONNECTED' /tmp/signal-deal-app.log
 
       - name: Upload runtime evidence
