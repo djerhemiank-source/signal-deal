@@ -1,0 +1,51 @@
+name: Patch paid checkout guard
+
+on:
+  push:
+    branches: ["main"]
+    paths: [".github/workflows/patch-paid-checkout-guard.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block duplicate paid subscriptions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old="function startCheckout(plan){if(!session){alert('Connectez-vous d’abord : Stripe doit savoir quel compte Signal Deal activer.');scrollToAuth();return}const base=CHECKOUT[plan];if(!base)return;const sep=base.includes('?')?'&':'?';location.href=base+sep+'client_reference_id='+encodeURIComponent(session.user.id)+'&prefilled_email='+encodeURIComponent(session.user.email)}"
+          new="function startCheckout(plan){if(!session){alert('Connectez-vous d’abord : Stripe doit savoir quel compte Signal Deal activer.');scrollToAuth();return}if(currentPlan!=='free'){const msg=document.getElementById('billingMsg');if(msg)msg.textContent='Vous avez déjà une formule payante. Pour éviter un double abonnement, utilisez « Gérer / résilier ».';alert('Aucun nouvel abonnement n’a été créé : votre compte possède déjà une formule payante. Utilisez « Gérer / résilier ».');return}const base=CHECKOUT[plan];if(!base)return;const sep=base.includes('?')?'&':'?';location.href=base+sep+'client_reference_id='+encodeURIComponent(session.user.id)+'&prefilled_email='+encodeURIComponent(session.user.email)}"
+          if s.count(old)!=1: raise SystemExit(f'startCheckout target count={s.count(old)}')
+          p.write_text(s.replace(old,new))
+
+          t=Path('tests/root-browser-smoke.mjs')
+          x=t.read_text()
+          old_test="""  for(const plan of ['essential','pro','agency']){\n    await page.locator('button[onclick=\"startCheckout(\\''+plan+'\\')\"]').click();\n    assert.equal(authRequests,0,name+': paiement sans session a appelé Auth');\n  }\n\n  assert.equal(await page.locator('#manageSubscriptionBtn').evaluate(el=>getComputedStyle(el).display),'none',name+': gestion abonnement visible sans formule payante');\n"""
+          new_test="""  for(const plan of ['essential','pro','agency']){\n    await page.locator('button[onclick=\"startCheckout(\\''+plan+'\\')\"]').click();\n    assert.equal(authRequests,0,name+': paiement sans session a appelé Auth');\n  }\n\n  assert.equal(await page.evaluate(()=>/currentPlan\\s*!==\\s*'free'/.test(startCheckout.toString())),true,name+': garde anti-double-abonnement absente');\n  let checkoutRequests=0;\n  await page.route('https://buy.stripe.com/**',route=>{checkoutRequests++;route.abort();});\n  const beforePaidGuard=page.url();\n  await page.evaluate(()=>{session={user:{id:'qa-paid-user',email:'qa-paid@example.com'}};currentPlan='pro';startCheckout('agency')});\n  await page.waitForTimeout(100);\n  assert.equal(checkoutRequests,0,name+': un compte déjà payant a ouvert un nouveau Checkout Stripe');\n  assert.equal(page.url(),beforePaidGuard,name+': un compte déjà payant a quitté Signal Deal vers un nouveau paiement');\n  await page.evaluate(()=>{session=null;currentPlan='free'});\n\n  assert.equal(await page.locator('#manageSubscriptionBtn').evaluate(el=>getComputedStyle(el).display),'none',name+': gestion abonnement visible sans formule payante');\n"""
+          if x.count(old_test)!=1: raise SystemExit(f'smoke target count={x.count(old_test)}')
+          t.write_text(x.replace(old_test,new_test))
+          PY
+      - name: Validate JavaScript
+        run: |
+          python3 - <<'PY'
+          import re,pathlib
+          s=pathlib.Path('index.html').read_text()
+          pathlib.Path('/tmp/root.js').write_text('\n'.join(re.findall(r'<script>([\s\S]*?)</script>',s)))
+          PY
+          node --check /tmp/root.js
+          node --check tests/root-browser-smoke.mjs
+          grep -q "currentPlan!=='free'" index.html
+      - name: Commit patch and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/patch-paid-checkout-guard.yml
+          git add index.html tests/root-browser-smoke.mjs
+          git commit -m 'Bloquer les doubles abonnements Signal Deal'
+          git push
