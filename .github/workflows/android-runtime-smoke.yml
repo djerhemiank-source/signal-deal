@@ -35,7 +35,9 @@ jobs:
           gradle-version: '8.13'
 
       - name: Install Android emulator API 36
+        shell: bash
         run: |
+          set -euo pipefail
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-36" \
@@ -44,10 +46,21 @@ jobs:
             "emulator" \
             "system-images;android-36;google_apis;x86_64"
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+
+          AVD_HOME="$RUNNER_TEMP/signal-deal-avd"
+          AVD_PATH="$AVD_HOME/signal_deal_api36.avd"
+          mkdir -p "$AVD_HOME"
+          echo "ANDROID_AVD_HOME=$AVD_HOME" >> "$GITHUB_ENV"
+          export ANDROID_AVD_HOME="$AVD_HOME"
+
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
             -n signal_deal_api36 \
             -k "system-images;android-36;google_apis;x86_64" \
+            -p "$AVD_PATH" \
             --force
+
+          "$ANDROID_HOME/emulator/emulator" -list-avds | tee /tmp/signal-deal-avds.txt
+          grep -qx 'signal_deal_api36' /tmp/signal-deal-avds.txt
 
       - name: Build debug APK
         working-directory: android
@@ -168,5 +181,6 @@ jobs:
             /tmp/signal-deal-emulator.log
             /tmp/signal-deal-emulator.pid
             /tmp/signal-deal-no-device.txt
+            /tmp/signal-deal-avds.txt
           if-no-files-found: warn
           retention-days: 14
