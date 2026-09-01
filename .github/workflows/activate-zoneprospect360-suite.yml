@@ -17,122 +17,61 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fix capability refresh and quota handling
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('zoneprospect360-suite.js')
-          s=p.read_text(encoding='utf-8')
-          s=s.replace('const caps=ZP.caps||await loadCaps();', 'const caps=await loadCaps();')
-          needle="    const target=items(); const seen=new Set(target.map(x=>x.key)); let added=0;\n    for(const r of rows){"
-          repl="    const target=items(); const seen=new Set(target.map(x=>x.key)); let added=0;\n    const limit=(()=>{try{return Number(planMax||5)}catch{return 5}})();\n    for(const r of rows){\n      if(target.length>=limit)break;"
-          if needle in s:
-              s=s.replace(needle,repl,1)
-          s=s.replace("      added++; if(target.length>=Math.max(Number(window.planMax||500),500))break;", "      added++;",1)
-          p.write_text(s,encoding='utf-8')
-          PY
-
-      - name: Activate suite on prospects page
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('prospects.html')
-          s=p.read_text(encoding='utf-8')
-          tag='<script src="./zoneprospect360-suite.js"></script>'
-          if tag not in s:
-              marker='</body></html>'
-              if marker not in s:
-                  raise SystemExit('closing body marker not found')
-              s=s.replace(marker,tag+'\n</body></html>',1)
-              p.write_text(s,encoding='utf-8')
-          PY
-
       - name: Final product consistency
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          # Resolve the user's active paid plan immediately on page open, not only after the first radar run.
           p=Path('zoneprospect360-suite.js')
           s=p.read_text(encoding='utf-8')
-          old="""  async function loadCaps(){
-    const c=appClient(); if(!c)return null;
-    const p=plan();
-    const {data,error}=await c.from('plan_catalog').select('id,can_export,can_company_enrich,monthly_company_enrichments,can_import_contacts,can_saved_searches').eq('id',p).maybeSingle();
-    if(!error&&data)ZP.caps=data;
-    return ZP.caps;
-  }"""
-          new="""  async function loadCaps(){
-    const c=appClient(); if(!c)return null;
-    let p=plan();
-    if(hasSession()){
-      const {data:sub}=await c.from('subscriptions').select('plan,status,updated_at').eq('user_id',session.user.id).eq('livemode',true).in('status',['active','trialing']).order('updated_at',{ascending:false}).limit(1).maybeSingle();
-      if(sub?.plan){p=String(sub.plan);try{currentPlan=p}catch{}}
-    }
-    const {data,error}=await c.from('plan_catalog').select('id,max_feed_rows,can_export,can_company_enrich,monthly_company_enrichments,can_import_contacts,can_saved_searches').eq('id',p).maybeSingle();
-    if(!error&&data){ZP.caps=data;try{if(data.max_feed_rows)planMax=Number(data.max_feed_rows)}catch{}}
-    return ZP.caps;
-  }"""
-          if old in s:
-              s=s.replace(old,new,1)
-          elif "select('plan,status,updated_at')" not in s:
-              raise SystemExit('loadCaps anchor not found')
+          pattern=r"  async function loadCaps\(\)\{.*?\n  \}\n\n  function suitePanel"
+          replacement=(
+              "  async function loadCaps(){\n"
+              "    const c=appClient(); if(!c)return null;\n"
+              "    let p=plan();\n"
+              "    if(hasSession()){\n"
+              "      const {data:sub}=await c.from('subscriptions').select('plan,status,updated_at').eq('user_id',session.user.id).eq('livemode',true).in('status',['active','trialing']).order('updated_at',{ascending:false}).limit(1).maybeSingle();\n"
+              "      if(sub?.plan){p=String(sub.plan);try{currentPlan=p}catch{}}\n"
+              "    }\n"
+              "    const {data,error}=await c.from('plan_catalog').select('id,max_feed_rows,can_export,can_company_enrich,monthly_company_enrichments,can_import_contacts,can_saved_searches').eq('id',p).maybeSingle();\n"
+              "    if(!error&&data){ZP.caps=data;try{if(data.max_feed_rows)planMax=Number(data.max_feed_rows)}catch{}}\n"
+              "    return ZP.caps;\n"
+              "  }\n\n"
+              "  function suitePanel"
+          )
+          if "select('plan,status,updated_at')" not in s:
+              s,n=re.subn(pattern,replacement,s,count=1,flags=re.S)
+              if n!=1: raise SystemExit('loadCaps anchor not found')
           p.write_text(s,encoding='utf-8')
 
-          # Align public pricing copy with the rights enforced by the server.
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
           replacements={
-            '<li>✓ Scores et zones</li><li>✓ Pipeline personnel</li><li>– Sources détaillées avancées</li><li>– Matching prestataires avancé</li>':'<li>✓ Scores et zones</li><li>✓ Pipeline personnel</li><li>✓ 5 enrichissements entreprise publics / mois</li><li>– Import / export CSV</li><li>– Matching prestataires avancé</li>',
-            '<li>✓ Zone de chalandise jusqu’à 50 km</li><li>✓ Sources officielles et besoins</li><li>✓ Demandes travaux consenties disponibles</li><li>✓ Filtres et pipeline commercial</li>':'<li>✓ Zone de chalandise jusqu’à 10 km</li><li>✓ Sources officielles et besoins</li><li>✓ 25 enrichissements entreprise publics / mois</li><li>✓ Import CSV + recherches sauvegardées</li><li>✓ Demandes travaux consenties + pipeline</li>',
-            '<li>✓ Ciblage multi-catégories</li><li>✓ Matching prestataires</li><li>✓ Préparation de l’approche</li><li>✓ Calcul de commission</li><li>✓ Export CSV</li>':'<li>✓ Zone de chalandise jusqu’à 25 km</li><li>✓ 250 enrichissements entreprise publics / mois</li><li>✓ Import + export CSV et recherches sauvegardées</li><li>✓ Matching prestataires + préparation de l’approche</li><li>✓ Calcul de commission</li>',
-            '<li>✓ Ciblage métier et zone étendu</li><li>✓ Sources, besoins et signaux</li><li>✓ Pipeline, calcul et export CSV</li>':'<li>✓ Zone de chalandise jusqu’à 50 km</li><li>✓ 1 000 enrichissements entreprise publics / mois</li><li>✓ Sources, besoins, signaux et recherches sauvegardées</li><li>✓ Pipeline, matching, import / export CSV</li>'
+              '<li>✓ Scores et zones</li><li>✓ Pipeline personnel</li><li>– Sources détaillées avancées</li><li>– Matching prestataires avancé</li>':'<li>✓ Scores et zones</li><li>✓ Pipeline personnel</li><li>✓ 5 enrichissements entreprise publics / mois</li><li>– Import / export CSV</li><li>– Matching prestataires avancé</li>',
+              '<li>✓ Zone de chalandise jusqu’à 50 km</li><li>✓ Sources officielles et besoins</li><li>✓ Demandes travaux consenties disponibles</li><li>✓ Filtres et pipeline commercial</li>':'<li>✓ Zone de chalandise jusqu’à 10 km</li><li>✓ Sources officielles et besoins</li><li>✓ 25 enrichissements entreprise publics / mois</li><li>✓ Import CSV + recherches sauvegardées</li><li>✓ Demandes travaux consenties + pipeline</li>',
+              '<li>✓ Ciblage multi-catégories</li><li>✓ Matching prestataires</li><li>✓ Préparation de l’approche</li><li>✓ Calcul de commission</li><li>✓ Export CSV</li>':'<li>✓ Zone de chalandise jusqu’à 25 km</li><li>✓ 250 enrichissements entreprise publics / mois</li><li>✓ Import + export CSV et recherches sauvegardées</li><li>✓ Matching prestataires + préparation de l’approche</li><li>✓ Calcul de commission</li>',
+              '<li>✓ Ciblage métier et zone étendu</li><li>✓ Sources, besoins et signaux</li><li>✓ Pipeline, calcul et export CSV</li>':'<li>✓ Zone de chalandise jusqu’à 50 km</li><li>✓ 1 000 enrichissements entreprise publics / mois</li><li>✓ Sources, besoins, signaux et recherches sauvegardées</li><li>✓ Pipeline, matching, import / export CSV</li>'
           }
-          for oldtxt,newtxt in replacements.items():
-              if oldtxt in s:
-                  s=s.replace(oldtxt,newtxt,1)
+          for old,new in replacements.items():
+              s=s.replace(old,new,1)
           s=s.replace('signal-deal-opportunites.csv','zoneprospect360-opportunites.csv')
           if '✓ Enrichissement entreprises' not in s:
               s=s.replace('<span>✓ Prospects B2B publics</span>','<span>✓ Prospects B2B publics</span><span>✓ Enrichissement entreprises</span>',1)
           p.write_text(s,encoding='utf-8')
 
-          # Visible Android export filename. Keep package, web path and JS bridge identifiers stable for update compatibility.
           p=Path('android/app/src/main/java/fr/signaldeal/app/MainActivity.java')
           s=p.read_text(encoding='utf-8').replace('signal-deal-opportunites.csv','zoneprospect360-opportunites.csv')
           p.write_text(s,encoding='utf-8')
 
-          # Developer-facing workflow titles should use the new brand too.
           for p in Path('.github/workflows').glob('*.yml'):
               s=p.read_text(encoding='utf-8')
               n=s.replace('Deploy Signal Deal','Deploy ZoneProspect 360').replace('Smoke Signal Deal','Smoke ZoneProspect 360').replace('Signal Deal Android','ZoneProspect 360 Android')
-              if n!=s:
-                  p.write_text(n,encoding='utf-8')
+              if n!=s: p.write_text(n,encoding='utf-8')
           PY
 
-      - name: Remove remaining visible legacy branding
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          skip={'.git','.github','issoire-connect'}
-          allowed={'.html','.js','.mjs','.json','.webmanifest','.md','.txt','.xml','.gradle','.yml','.yaml','.java','.kt','.pro','.properties'}
-          for p in Path('.').rglob('*'):
-              if not p.is_file() or any(part in skip for part in p.parts) or p.suffix.lower() not in allowed:
-                  continue
-              try:
-                  s=p.read_text(encoding='utf-8')
-              except UnicodeDecodeError:
-                  continue
-              n=s.replace('SIGNAL DEAL','ZONEPROSPECT 360').replace('Signal Deal','ZoneProspect 360').replace('signal deal','zoneprospect 360')
-              if n!=s:
-                  p.write_text(n,encoding='utf-8')
-                  print('updated',p)
-          PY
-
-      - name: Validate JavaScript and tests
+      - name: Validate product
         shell: bash
         run: |
           node --check zoneprospect360-suite.js
@@ -150,7 +89,7 @@ jobs:
             exit 1
           fi
 
-      - name: Commit activation
+      - name: Commit final corrections
         shell: bash
         run: |
           if git diff --quiet; then
