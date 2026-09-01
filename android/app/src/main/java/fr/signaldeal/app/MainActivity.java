@@ -3,6 +3,7 @@ package fr.signaldeal.app;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
 import android.net.Uri;
 import android.net.http.SslError;
@@ -71,7 +72,8 @@ public class MainActivity extends Activity {
 
     @SuppressWarnings("SetJavaScriptEnabled")
     private void configureWebView(WebView view) {
-        if (BuildConfig.DEBUG) {
+        boolean debuggable = (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        if (debuggable) {
             WebView.setWebContentsDebuggingEnabled(true);
         }
 
