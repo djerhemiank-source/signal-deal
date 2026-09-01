@@ -37,8 +37,12 @@ async function run(viewport){
  assert.match(await page.locator('main').innerText(),/Annuaire local d’Issoire/i,'directory did not render');
  await page.locator('#dirJob').fill('boulangerie');
  await page.locator('button', {hasText:'Filtrer'}).click();
+ await page.waitForFunction(()=>{
+   const input=document.querySelector('#dirJob');
+   const text=document.querySelector('main')?.innerText||'';
+   return input?.value==='boulangerie' && /boulanger/i.test(text);
+ },null,{timeout:20000});
  await page.locator('#icMap').waitFor({state:'visible',timeout:20000});
- await page.waitForFunction(()=>document.querySelectorAll('main article.card').length>0,null,{timeout:20000});
  const directoryText=await page.locator('main').innerText();
  assert.match(directoryText,/boulanger/i,'directory filter did not return a bakery');
 
@@ -64,4 +68,4 @@ async function run(viewport){
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT V16 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
+console.log('ISSOIRE CONNECT V17 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
