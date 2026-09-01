@@ -1,6 +1,6 @@
 (()=>{
 if(typeof S==='undefined'||typeof sb==='undefined')return;
-const M={reports:[]};
+const M={reports:[],current:null};
 const REASONS={spam:'Spam / publicité abusive',fraud:'Fraude / arnaque suspectée',inappropriate:'Contenu inapproprié',outdated:'Information obsolète ou erronée',other:'Autre'};
 const TARGETS={business:{table:'ic_businesses',label:'Entreprise'},classified:{table:'ic_classifieds',label:'Annonce'}};
 const DISABLE_TABLE={business:'ic_businesses',offer:'ic_offers',product:'ic_products',job:'ic_jobs',classified:'ic_classifieds',event:'ic_events'};
@@ -26,16 +26,18 @@ window.openReportContent=async function(type,id,label='Contenu'){
  const {data:existing,error}=await sb.from('ic_reports').select('id').eq('reporter_id',S.session.user.id).eq('target_type',type).eq('target_id',id).eq('status','pending').limit(1);
  if(error)return say(error.message);
  if(existing?.length)return say('Vous avez déjà un signalement en attente pour ce contenu.');
- openModal(`<h2>🚩 Signaler ce contenu</h2><p><b>${e(label)}</b></p><div class="notice">Le signalement est envoyé uniquement à l’administration d’Issoire Connect. Il ne supprime pas automatiquement le contenu.</div><label>Motif</label><select id="reportReason">${Object.entries(REASONS).map(([v,l])=>`<option value="${v}">${e(l)}</option>`).join('')}</select><label>Détails — facultatif</label><textarea id="reportDetails" rows="5" maxlength="2000" placeholder="Expliquez brièvement le problème constaté."></textarea><button id="reportSendBtn" class="btn brand" onclick="submitContentReport('${e(type)}','${e(id)}','${e(label).replace(/'/g,'&#39;')}')">🚩 Envoyer le signalement</button>`);
+ M.current={type,id,label:String(label||'Contenu')};
+ openModal(`<h2>🚩 Signaler ce contenu</h2><p><b>${e(M.current.label)}</b></p><div class="notice">Le signalement est envoyé uniquement à l’administration d’Issoire Connect. Il ne supprime pas automatiquement le contenu.</div><label>Motif</label><select id="reportReason">${Object.entries(REASONS).map(([v,l])=>`<option value="${v}">${e(l)}</option>`).join('')}</select><label>Détails — facultatif</label><textarea id="reportDetails" rows="5" maxlength="2000" placeholder="Expliquez brièvement le problème constaté."></textarea><button id="reportSendBtn" class="btn brand" onclick="submitContentReport()">🚩 Envoyer le signalement</button>`);
 };
-window.submitContentReport=async function(type,id,label){
+window.submitContentReport=async function(){
  if(!S.session)return authModal('account');
+ const current=M.current;if(!current)return say('Signalement expiré. Rouvrez le formulaire.');
  const reason=document.getElementById('reportReason')?.value||'other',details=document.getElementById('reportDetails')?.value.trim()||null;
  const btn=document.getElementById('reportSendBtn');if(btn){btn.disabled=true;btn.textContent='Envoi…'}
- const snapshot=await targetSnapshot(type,id,label);
- const {error}=await sb.from('ic_reports').insert({reporter_id:S.session.user.id,target_type:type,target_id:id,target_label:label,target_snapshot:snapshot,reason,details,status:'pending'});
+ const snapshot=await targetSnapshot(current.type,current.id,current.label);
+ const {error}=await sb.from('ic_reports').insert({reporter_id:S.session.user.id,target_type:current.type,target_id:current.id,target_label:current.label,target_snapshot:snapshot,reason,details,status:'pending'});
  if(error){if(btn){btn.disabled=false;btn.textContent='🚩 Envoyer le signalement'}return say(error.message)}
- closeModal();say('Signalement envoyé à l’administration. Merci.');
+ M.current=null;closeModal();say('Signalement envoyé à l’administration. Merci.');
 };
 function decorateClassifiedReports(){
  document.querySelectorAll('article.ic-public-ad').forEach(card=>{
@@ -58,8 +60,10 @@ if(typeof viewBusiness==='function'){
   const r=_viewBusinessModeration(id);
   const b=(S.businesses||[]).find(x=>x.id===id)||(S.myBusinesses||[]).find(x=>x.id===id);
   setTimeout(()=>{
-   if(!b||!window.modalBody||modalBody.querySelector('[data-report-business]'))return;
-   modalBody.insertAdjacentHTML('beforeend',`<div class="actions" style="margin-top:10px"><button class="btn" data-report-business="1" onclick="openReportContent('business','${e(id)}','${e(b.name||'Entreprise').replace(/'/g,'&#39;')}')">🚩 Signaler une erreur / un problème</button></div>`);
+   if(!b||typeof modalBody==='undefined'||!modalBody||modalBody.querySelector('[data-report-business]'))return;
+   const wrap=document.createElement('div');wrap.className='actions';wrap.style.marginTop='10px';
+   const btn=document.createElement('button');btn.className='btn';btn.dataset.reportBusiness='1';btn.textContent='🚩 Signaler une erreur / un problème';btn.onclick=()=>openReportContent('business',id,b.name||'Entreprise');
+   wrap.appendChild(btn);modalBody.appendChild(wrap);
   },0);
   return r;
  };
