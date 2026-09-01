@@ -2,8 +2,10 @@ name: Patch Signal Deal Android Play mode
 
 on:
   push:
-    branches: ["main"]
-    paths: [".github/workflows/patch-android-play-mode.yml"]
+    branches:
+      - main
+    paths:
+      - .github/workflows/patch-android-play-mode.yml
 
 permissions:
   contents: write
@@ -13,90 +15,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Add Android Play safe mode to web UI
+      - name: Apply Android Play safe mode
+        run: python3 .github/scripts/patch_android_play.py
+      - name: Validate JavaScript
         run: |
           python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          p=Path('index.html')
-          s=p.read_text()
-
-          css='''\nbody[data-platform="android-play"] .purchase-cta,body[data-platform="android-play"] #manageSubscriptionBtn,body[data-platform="android-play"] #changePlanBtn{display:none!important}.play-store-notice{display:none;margin:10px 0 16px;padding:12px 14px;border:1px solid #31567b;background:#0e1930;border-radius:12px;color:#c8d5eb;font-size:11px;line-height:1.5}body[data-platform="android-play"] .play-store-notice{display:block}\n'''
-          assert s.count('</style>')==1
-          s=s.replace('</style>',css+'</style>')
-
-          old='<p class="intro">Vous testez gratuitement, puis Stripe débloque automatiquement les fonctions payantes après validation du paiement.</p>'
-          new='<p id="pricingIntro" class="intro">Vous testez gratuitement, puis Stripe débloque automatiquement les fonctions payantes après validation du paiement.</p><div id="playStoreNotice" class="play-store-notice">Version Google Play : les achats ne sont pas proposés dans cette application. Les abonnements déjà actifs restent utilisables après connexion.</div>'
-          assert s.count(old)==1
-          s=s.replace(old,new)
-
-          for old,new in [
-            ('<button class="btn cta" onclick="startCheckout(\'essential\')">Choisir Essentiel</button>','<button class="btn cta purchase-cta" onclick="startCheckout(\'essential\')">Choisir Essentiel</button>'),
-            ('<button class="btn primary cta" onclick="startCheckout(\'pro\')">Choisir Pro</button>','<button class="btn primary cta purchase-cta" onclick="startCheckout(\'pro\')">Choisir Pro</button>'),
-            ('<button class="btn cta" onclick="startCheckout(\'agency\')">Choisir Agence</button>','<button class="btn cta purchase-cta" onclick="startCheckout(\'agency\')">Choisir Agence</button>'),
-            ('<a class="btn good" href="#pricing">Changer de formule</a>','<a id="changePlanBtn" class="btn good" href="#pricing">Changer de formule</a>')
-          ]:
-            assert s.count(old)==1, old
-            s=s.replace(old,new)
-
-          marker='function startCheckout(plan){if(!session)'
-          insertion="""const IS_ANDROID_PLAY=new URLSearchParams(location.search).get('platform')==='android-play'||navigator.userAgent.includes('SignalDealAndroidPlay');
-function applyPlatformMode(){if(!IS_ANDROID_PLAY)return;document.body.dataset.platform='android-play';const intro=document.getElementById('pricingIntro');if(intro)intro.textContent='Connectez-vous pour utiliser votre formule Signal Deal. Les achats ne sont pas proposés dans la version Google Play.';const manage=document.getElementById('manageSubscriptionBtn');if(manage)manage.style.display='none';const change=document.getElementById('changePlanBtn');if(change)change.style.display='none'}
-function startCheckout(plan){if(IS_ANDROID_PLAY){alert('Les achats ne sont pas proposés dans la version Google Play de Signal Deal. Aucun paiement n’a été lancé.');return}if(!session)"""
-          assert s.count(marker)==1
-          s=s.replace(marker,insertion)
-
-          marker='async function manageSubscription(){if(!session)'
-          repl="async function manageSubscription(){if(IS_ANDROID_PLAY){const msg=document.getElementById('billingMsg');if(msg)msg.textContent='La gestion Stripe se fait hors de la version Google Play.';return}if(!session)"
-          assert s.count(marker)==1
-          s=s.replace(marker,repl)
-
-          pattern=r"function exportCsv\(\)\{.*?\}\nclient\.auth\.onAuthStateChange"
-          export_fn="""function exportCsv(){if(!['pro','agency'].includes(currentPlan)){scrollToPricing();return}const cols=['company','title','sector','region','department','score','probable_need','source_url','published_at','deadline'],csv=[cols.join(';'),...feed.map(o=>cols.map(c=>'\"'+String(o[c]??'').replace(/\"/g,'\"\"')+'\"').join(';'))].join('\\n');if(IS_ANDROID_PLAY&&window.SignalDealAndroid&&typeof window.SignalDealAndroid.saveCsv==='function'){window.SignalDealAndroid.saveCsv('signal-deal-opportunites.csv',csv);return}const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='signal-deal-opportunites.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-applyPlatformMode();
-client.auth.onAuthStateChange"""
-          s,n=re.subn(pattern,export_fn,s,count=1,flags=re.S)
-          assert n==1, 'exportCsv/client.auth target not found'
-          p.write_text(s)
-
-          t=Path('tests/root-browser-smoke.mjs')
-          x=t.read_text()
-          marker="""  assert.equal(errors.length,0,name+': erreurs après stress '+errors.join(' | '));
-  await browser.close();
-"""
-          insert="""  assert.equal(errors.length,0,name+': erreurs après stress '+errors.join(' | '));
-
-  const playPage=await context.newPage();
-  await playPage.goto(new URL('?platform=android-play',BASE).href,{waitUntil:'networkidle',timeout:20000});
-  assert.equal(await playPage.evaluate(()=>IS_ANDROID_PLAY),true,name+': mode Android Play non détecté');
-  assert.equal(await playPage.locator('.purchase-cta:visible').count(),0,name+': CTA Stripe visible dans la version Play');
-  assert.equal(await playPage.locator('#manageSubscriptionBtn').isVisible(),false,name+': gestion Stripe visible dans la version Play');
-  assert.equal(await playPage.locator('#changePlanBtn').isVisible(),false,name+': changement de formule visible dans la version Play');
-  assert.match(await playPage.locator('#playStoreNotice').innerText(),/achats ne sont pas proposés/i);
-  await playPage.close();
-
-  await browser.close();
-"""
-          assert x.count(marker)==1
-          t.write_text(x.replace(marker,insert))
-          PY
-      - name: Validate web JavaScript and smoke syntax
-        run: |
-          python3 - <<'PY'
-          import re,pathlib
-          s=pathlib.Path('index.html').read_text()
-          pathlib.Path('/tmp/root.js').write_text('\n'.join(re.findall(r'<script>([\s\S]*?)</script>',s)))
+          import pathlib, re
+          html = pathlib.Path('index.html').read_text()
+          scripts = '\n'.join(re.findall(r'<script>([\s\S]*?)</script>', html))
+          pathlib.Path('/tmp/root.js').write_text(scripts)
           PY
           node --check /tmp/root.js
           node --check tests/root-browser-smoke.mjs
-          grep -q 'IS_ANDROID_PLAY' index.html
-          test "$(grep -o 'purchase-cta' index.html | wc -l)" -ge 4
-      - name: Commit patch and remove one-time workflow
+          grep -q "IS_ANDROID_PLAY" index.html
+      - name: Commit patch
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm .github/workflows/patch-android-play-mode.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-android-play-mode.yml .github/scripts/patch_android_play.py
           git add index.html tests/root-browser-smoke.mjs
-          git commit -m 'Ajouter le mode Android Google Play sécurisé'
+          git commit -m "Ajouter le mode Android Google Play sécurisé"
           git push
