@@ -8,7 +8,7 @@ import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowInsets;
 import android.webkit.CookieManager;
@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
+    private static final String TAG = "SignalDeal";
     private static final String START_URL = "https://djerhemiank-source.github.io/signal-deal/?platform=android-play";
     private static final int CREATE_CSV_REQUEST = 4107;
 
@@ -70,6 +71,10 @@ public class MainActivity extends Activity {
 
     @SuppressWarnings("SetJavaScriptEnabled")
     private void configureWebView(WebView view) {
+        if (BuildConfig.DEBUG) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
+
         WebSettings settings = view.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -145,6 +150,7 @@ public class MainActivity extends Activity {
             if (isAllowedSignalDealUri(uri)) return false;
 
             if (isStripeHost(uri)) {
+                Log.w(TAG, "Blocked Stripe navigation in Google Play build: " + uri.getHost());
                 Toast.makeText(MainActivity.this,
                     "Les achats et la gestion Stripe ne sont pas ouverts depuis la version Google Play.",
                     Toast.LENGTH_LONG).show();
@@ -159,7 +165,14 @@ public class MainActivity extends Activity {
         }
 
         @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            Log.i(TAG, "PAGE_FINISHED " + url);
+        }
+
+        @Override
         public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+            Log.e(TAG, "SSL_ERROR " + (error == null ? "unknown" : error.getPrimaryError()));
             handler.cancel();
             Toast.makeText(MainActivity.this, "Connexion sécurisée refusée.", Toast.LENGTH_LONG).show();
         }
@@ -168,6 +181,8 @@ public class MainActivity extends Activity {
         public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
             super.onReceivedError(view, request, error);
             if (request.isForMainFrame()) {
+                String description = error == null || error.getDescription() == null ? "unknown" : error.getDescription().toString();
+                Log.e(TAG, "MAIN_FRAME_ERROR " + description);
                 Toast.makeText(MainActivity.this,
                     "Signal Deal est momentanément inaccessible. Vérifiez votre connexion.",
                     Toast.LENGTH_LONG).show();
