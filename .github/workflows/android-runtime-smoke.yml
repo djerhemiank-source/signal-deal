@@ -12,10 +12,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: signal-deal-android-runtime-smoke
+  cancel-in-progress: true
+
 jobs:
   runtime-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -50,33 +54,73 @@ jobs:
         run: gradle --no-daemon --stacktrace assembleDebug
 
       - name: Start API 36 emulator
+        shell: bash
         run: |
+          set -euo pipefail
+          ADB="$ANDROID_HOME/platform-tools/adb"
           sudo chmod 666 /dev/kvm || true
-          nohup "$ANDROID_HOME/emulator/emulator" \
+          "$ANDROID_HOME/emulator/emulator" \
             -avd signal_deal_api36 \
             -no-window -no-audio -no-boot-anim \
-            -gpu swiftshader \
+            -gpu auto \
             -no-snapshot -wipe-data \
             > /tmp/signal-deal-emulator.log 2>&1 &
-          adb wait-for-device
-          for i in {1..120}; do
-            BOOT=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
-            if [ "$BOOT" = "1" ]; then break; fi
+          EMULATOR_PID=$!
+          echo "$EMULATOR_PID" > /tmp/signal-deal-emulator.pid
+
+          DEVICE_READY=0
+          for i in {1..90}; do
+            if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+              echo "Emulator process exited before adb became available"
+              cat /tmp/signal-deal-emulator.log || true
+              exit 1
+            fi
+            if "$ADB" get-state 2>/dev/null | grep -q '^device$'; then
+              DEVICE_READY=1
+              break
+            fi
             sleep 2
           done
-          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
-          adb shell input keyevent 82 || true
+          if [ "$DEVICE_READY" != "1" ]; then
+            echo "Emulator was not visible to adb within 180 seconds"
+            cat /tmp/signal-deal-emulator.log || true
+            exit 1
+          fi
+
+          BOOT_READY=0
+          for i in {1..120}; do
+            BOOT=$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            if [ "$BOOT" = "1" ]; then
+              BOOT_READY=1
+              break
+            fi
+            if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+              echo "Emulator process exited during Android boot"
+              cat /tmp/signal-deal-emulator.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+          if [ "$BOOT_READY" != "1" ]; then
+            echo "Android did not complete boot within 240 seconds"
+            cat /tmp/signal-deal-emulator.log || true
+            exit 1
+          fi
+          "$ADB" shell input keyevent 82 || true
 
       - name: Install and launch Signal Deal
+        shell: bash
         run: |
+          set -euo pipefail
+          ADB="$ANDROID_HOME/platform-tools/adb"
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
-          adb install -r "$APK"
-          adb logcat -c
-          adb shell am start -W -n fr.signaldeal.app/.MainActivity | tee /tmp/activity-start.txt
+          "$ADB" install -r "$APK"
+          "$ADB" logcat -c
+          "$ADB" shell am start -W -n fr.signaldeal.app/.MainActivity | tee /tmp/activity-start.txt
           grep -q "Status: ok" /tmp/activity-start.txt
 
           for i in {1..60}; do
-            adb logcat -d -s SignalDeal:I '*:S' > /tmp/signal-deal-app.log || true
+            "$ADB" logcat -d -s SignalDeal:I '*:S' > /tmp/signal-deal-app.log || true
             if grep -q 'PAGE_FINISHED https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log; then break; fi
             sleep 2
           done
@@ -84,22 +128,24 @@ jobs:
           grep -q 'PAGE_FINISHED https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log
           ! grep -E 'MAIN_FRAME_ERROR|SSL_ERROR' /tmp/signal-deal-app.log
 
-          PID=$(adb shell pidof -s fr.signaldeal.app | tr -d '\r')
+          PID=$("$ADB" shell pidof -s fr.signaldeal.app | tr -d '\r')
           test -n "$PID"
-          adb shell dumpsys activity activities > /tmp/signal-deal-activity.txt
+          "$ADB" shell dumpsys activity activities > /tmp/signal-deal-activity.txt
           grep -E 'mResumedActivity|topResumedActivity' /tmp/signal-deal-activity.txt | grep -q 'fr.signaldeal.app'
-          adb logcat --pid="$PID" -d > /tmp/signal-deal-process.log || true
+          "$ADB" logcat --pid="$PID" -d > /tmp/signal-deal-process.log || true
           ! grep -E 'FATAL EXCEPTION|Process: fr.signaldeal.app.*has died' /tmp/signal-deal-process.log
 
       - name: Capture Android UI evidence
         if: always()
+        shell: bash
         run: |
-          adb exec-out screencap -p > /tmp/signal-deal-android.png || true
-          adb shell uiautomator dump /sdcard/signal-deal-ui.xml || true
-          adb pull /sdcard/signal-deal-ui.xml /tmp/signal-deal-ui.xml || true
-          adb shell dumpsys activity activities > /tmp/signal-deal-activity.txt || true
-          adb logcat -d -s SignalDeal:I '*:S' > /tmp/signal-deal-app.log || true
-          adb logcat -d > /tmp/signal-deal-logcat.txt || true
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" exec-out screencap -p > /tmp/signal-deal-android.png || true
+          "$ADB" shell uiautomator dump /sdcard/signal-deal-ui.xml || true
+          "$ADB" pull /sdcard/signal-deal-ui.xml /tmp/signal-deal-ui.xml || true
+          "$ADB" shell dumpsys activity activities > /tmp/signal-deal-activity.txt || true
+          "$ADB" logcat -d -s SignalDeal:I '*:S' > /tmp/signal-deal-app.log || true
+          "$ADB" logcat -d > /tmp/signal-deal-logcat.txt || true
           cp /tmp/activity-start.txt /tmp/signal-deal-activity-start.txt 2>/dev/null || true
 
       - name: Upload runtime evidence
@@ -116,5 +162,6 @@ jobs:
             /tmp/signal-deal-logcat.txt
             /tmp/signal-deal-activity-start.txt
             /tmp/signal-deal-emulator.log
+            /tmp/signal-deal-emulator.pid
           if-no-files-found: warn
           retention-days: 14
