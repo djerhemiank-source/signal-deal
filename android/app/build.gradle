@@ -27,6 +27,7 @@ android {
                 storePassword uploadStorePassword
                 keyAlias uploadKeyAlias
                 keyPassword uploadKeyPassword
+                storePassword uploadStorePassword
             }
         }
     }
@@ -34,6 +35,8 @@ android {
     buildTypes {
         debug {
             debuggable true
+            applicationIdSuffix '.zoneprospect360'
+            versionNameSuffix '-test'
         }
         release {
             minifyEnabled false
