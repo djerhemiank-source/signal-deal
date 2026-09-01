@@ -68,4 +68,4 @@ async function run(viewport){
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT V17 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
+console.log('ISSOIRE CONNECT V18 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
