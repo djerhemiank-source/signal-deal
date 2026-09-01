@@ -155,9 +155,19 @@ jobs:
           ADB="$ANDROID_HOME/platform-tools/adb"
           cp /tmp/activity-start.txt /tmp/signal-deal-activity-start.txt 2>/dev/null || true
           if timeout 5s "$ADB" get-state 2>/dev/null | grep -q '^device$'; then
+            # Capture 1: real Android home screen
             timeout 10s "$ADB" exec-out screencap -p > /tmp/signal-deal-android.png || true
             timeout 10s "$ADB" shell uiautomator dump /sdcard/signal-deal-ui.xml || true
             timeout 10s "$ADB" pull /sdcard/signal-deal-ui.xml /tmp/signal-deal-ui.xml || true
+
+            # Capture 2: open the real sign-in section and capture it.
+            # The smoke emulator is fixed at 304x640; the top-right Sign in CTA is around x=255,y=50.
+            timeout 5s "$ADB" shell input tap 255 50 || true
+            sleep 2
+            timeout 10s "$ADB" exec-out screencap -p > /tmp/signal-deal-android-login.png || true
+            timeout 10s "$ADB" shell uiautomator dump /sdcard/signal-deal-login-ui.xml || true
+            timeout 10s "$ADB" pull /sdcard/signal-deal-login-ui.xml /tmp/signal-deal-login-ui.xml || true
+
             timeout 10s "$ADB" shell dumpsys activity activities > /tmp/signal-deal-activity.txt || true
             timeout 10s "$ADB" logcat -d -s SignalDeal:I '*:S' > /tmp/signal-deal-app.log || true
             timeout 10s "$ADB" logcat -d > /tmp/signal-deal-logcat.txt || true
@@ -172,7 +182,9 @@ jobs:
           name: signal-deal-android-runtime-evidence
           path: |
             /tmp/signal-deal-android.png
+            /tmp/signal-deal-android-login.png
             /tmp/signal-deal-ui.xml
+            /tmp/signal-deal-login-ui.xml
             /tmp/signal-deal-app.log
             /tmp/signal-deal-process.log
             /tmp/signal-deal-activity.txt
