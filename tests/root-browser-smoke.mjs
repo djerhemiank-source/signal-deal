@@ -75,6 +75,16 @@ async function run(name,viewport){
     assert.equal(authRequests,0,name+': paiement sans session a appelé Auth');
   }
 
+  assert.equal(await page.evaluate(()=>/currentPlan\s*!==\s*'free'/.test(startCheckout.toString())),true,name+': garde anti-double-abonnement absente');
+  let checkoutRequests=0;
+  await page.route('https://buy.stripe.com/**',route=>{checkoutRequests++;route.abort();});
+  const beforePaidGuard=page.url();
+  await page.evaluate(()=>{session={user:{id:'qa-paid-user',email:'qa-paid@example.com'}};currentPlan='pro';startCheckout('agency')});
+  await page.waitForTimeout(100);
+  assert.equal(checkoutRequests,0,name+': un compte déjà payant a ouvert un nouveau Checkout Stripe');
+  assert.equal(page.url(),beforePaidGuard,name+': un compte déjà payant a quitté Signal Deal vers un nouveau paiement');
+  await page.evaluate(()=>{session=null;currentPlan='free'});
+
   assert.equal(await page.locator('#manageSubscriptionBtn').evaluate(el=>getComputedStyle(el).display),'none',name+': gestion abonnement visible sans formule payante');
 
   for(let i=0;i<30;i++){
