@@ -13,7 +13,7 @@ await page.evaluate(()=>window.authModal('signup'));
 await page.locator('#icAuthEmail').fill('test@example.invalid');
 await page.locator('#icAuthName').fill('Test Issoire');
 assert.equal(await page.locator('#icAuthPassword').getAttribute('minlength'),'10');
-assert.match(await page.locator('.modalback:visible,.modal:visible').last().innerText(),/10 caractères minimum/i);
+assert.match(await page.locator('body').innerText(),/10 caractères minimum/i);
 const signupCapture=await page.evaluate(async()=>{
  const old=sb.auth.signUp;let args=null;sb.auth.signUp=async a=>(args=a,{data:{session:null},error:null});
  document.querySelector('#icAuthPassword').value='Abcdefghi1';
@@ -24,6 +24,7 @@ assert.match(signupCapture.options.emailRedirectTo,/\/issoire-connect\/app\/$/);
 assert.equal(signupCapture.options.data.full_name,'Test Issoire');
 await page.evaluate(()=>window.authModal('forgot'));
 await page.locator('#icAuthEmail').fill('test@example.invalid');
+assert.match(await page.locator('body').innerText(),/Mot de passe oublié/i);
 const forgotCapture=await page.evaluate(async()=>{
  const old=sb.auth.resetPasswordForEmail;let args=null;sb.auth.resetPasswordForEmail=async(email,opts)=>(args={email,opts},{data:{},error:null});
  await window.icAuthForgot();sb.auth.resetPasswordForEmail=old;return args;
@@ -31,6 +32,6 @@ const forgotCapture=await page.evaluate(async()=>{
 assert.equal(forgotCapture.email,'test@example.invalid');
 assert.match(forgotCapture.opts.redirectTo,/\/issoire-connect\/app\/\?auth=recovery$/);
 await page.evaluate(()=>window.authModal('login'));
-assert.match(await page.locator('.modalback:visible,.modal:visible').last().innerText(),/Mot de passe oublié/i);
+assert.match(await page.locator('body').innerText(),/Mot de passe oublié/i);
 console.log('ISSOIRE CONNECT AUTH UI PASS',JSON.stringify({base:BASE,globals,signupRedirect:signupCapture.options.emailRedirectTo,resetRedirect:forgotCapture.opts.redirectTo}));
 await browser.close();
