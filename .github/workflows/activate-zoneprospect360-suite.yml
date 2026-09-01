@@ -64,11 +64,6 @@ jobs:
           p=Path('android/app/src/main/java/fr/signaldeal/app/MainActivity.java')
           s=p.read_text(encoding='utf-8').replace('signal-deal-opportunites.csv','zoneprospect360-opportunites.csv')
           p.write_text(s,encoding='utf-8')
-
-          for p in Path('.github/workflows').glob('*.yml'):
-              s=p.read_text(encoding='utf-8')
-              n=s.replace('Deploy Signal Deal','Deploy ZoneProspect 360').replace('Smoke Signal Deal','Smoke ZoneProspect 360').replace('Signal Deal Android','ZoneProspect 360 Android')
-              if n!=s: p.write_text(n,encoding='utf-8')
           PY
 
       - name: Validate product
@@ -98,6 +93,6 @@ jobs:
           fi
           git config user.name 'ZoneProspect 360 Suite'
           git config user.email 'actions@users.noreply.github.com'
-          git add -A
+          git add zoneprospect360-suite.js index.html android/app/src/main/java/fr/signaldeal/app/MainActivity.java
           git commit -m 'fix: finalize ZoneProspect 360 product consistency'
           git push origin HEAD:main
