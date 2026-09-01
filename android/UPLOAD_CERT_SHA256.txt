@@ -6,3 +6,5 @@ Certificate SHA-256:
 
 This fingerprint is public metadata used by CI to ensure that future Play upload bundles are signed with the expected Signal Deal upload certificate.
 The private keystore and passwords must never be committed to this repository.
+
+Google Play compliance checks also cover the public privacy policy, authenticated account-deletion endpoint, and the runtime guard that prevents a completed Signal Deal deletion from reopening the app.
