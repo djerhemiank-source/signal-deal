@@ -1,14 +1,14 @@
-# Signal Deal — dossier Google Play V1
+# ZoneProspect 360 — dossier Google Play V1
 
 ## État au 1 septembre 2026
 
-Le dossier technique Signal Deal est prêt pour la création de l'application dans Google Play Console. Le seul blocage externe restant pour le compte développeur Organisation est l'obtention / propagation du numéro D-U-N-S après passage de l'entreprise en diffusion publique Sirene.
+Le dossier technique ZoneProspect 360 est prêt pour la création de l'application dans Google Play Console. Le seul blocage externe restant pour le compte développeur Organisation est l'obtention / propagation du numéro D-U-N-S après passage de l'entreprise en diffusion publique Sirene.
 
 Validé :
 
 - application Web publique ;
 - Android API 36 ;
-- AAB signé avec la clé d'upload Signal Deal ;
+- AAB signé avec la clé d'upload ZoneProspect 360 ;
 - smoke Android API 36 réussi ;
 - smoke Chromium local + public réussi ;
 - Stripe TEST validé de bout en bout ;
@@ -25,7 +25,7 @@ En attente externe :
 
 ## Identité technique
 
-- Nom de l'application : Signal Deal
+- Nom de l'application : ZoneProspect 360
 - Package : `fr.signaldeal.app`
 - Version : `1.0.0`
 - Version code : `1`
@@ -49,13 +49,13 @@ Aucune permission Android de localisation, caméra, microphone, contacts, SMS ou
 
 ## Positionnement Google Play
 
-La version Google Play est une application compagnon pour l'utilisation du service Signal Deal. Elle permet aux utilisateurs de se connecter et d'utiliser les fonctionnalités autorisées par leur formule existante.
+La version Google Play est une application compagnon pour l'utilisation du service ZoneProspect 360. Elle permet aux utilisateurs de se connecter et d'utiliser les fonctionnalités autorisées par leur formule existante.
 
 Les achats Stripe, les boutons d'achat et la gestion Stripe sont masqués / bloqués dans le mode `android-play`. Un utilisateur disposant déjà d'une formule peut se connecter et utiliser les droits correspondants.
 
 Fonctions Android natives :
 
-- WebView restreinte au domaine Signal Deal ;
+- WebView restreinte au domaine ZoneProspect 360 ;
 - hôtes Stripe bloqués dans le build Google Play ;
 - Safe Browsing activé ;
 - contenu HTTP mixte refusé ;
@@ -69,7 +69,7 @@ Fonctions Android natives :
 
 ### Nom de l'application
 
-Signal Deal
+ZoneProspect 360
 
 Limite Google Play : 30 caractères.
 
@@ -79,11 +79,11 @@ Repérez et organisez vos opportunités commerciales depuis votre mobile.
 
 ### Description complète
 
-Signal Deal centralise des opportunités commerciales et aide à organiser leur suivi dans une interface claire pensée pour une utilisation professionnelle quotidienne.
+ZoneProspect 360 centralise des opportunités commerciales et aide à organiser leur suivi dans une interface claire pensée pour une utilisation professionnelle quotidienne.
 
 Connectez-vous à votre compte pour consulter les opportunités accessibles avec votre formule, examiner les informations disponibles et gérer votre pipeline commercial.
 
-Selon votre formule Signal Deal, vous pouvez notamment :
+Selon votre formule ZoneProspect 360, vous pouvez notamment :
 
 - consulter un volume adapté d'opportunités commerciales ;
 - accéder aux sources et aux besoins associés lorsque votre formule le permet ;
@@ -93,9 +93,9 @@ Selon votre formule Signal Deal, vous pouvez notamment :
 - calculer des estimations de commission ;
 - exporter vos opportunités en CSV depuis les formules compatibles.
 
-La version distribuée sur Google Play ne propose pas d'achat dans l'application. Elle permet d'utiliser un compte et une formule Signal Deal déjà actifs.
+La version distribuée sur Google Play ne propose pas d'achat dans l'application. Elle permet d'utiliser un compte et une formule ZoneProspect 360 déjà actifs.
 
-Signal Deal ne garantit aucun résultat commercial. Les scores, estimations et informations affichés sont des indicateurs destinés à faciliter la prospection, la qualification et l'organisation du suivi commercial.
+ZoneProspect 360 ne garantit aucun résultat commercial. Les scores, estimations et informations affichés sont des indicateurs destinés à faciliter la prospection, la qualification et l'organisation du suivi commercial.
 
 ### Catégorie proposée
 
@@ -125,7 +125,7 @@ Réponse proposée dans Play Console :
 
 Instructions en anglais à copier une fois le compte de démonstration créé :
 
-`Open Signal Deal and tap Sign in. Use the review account credentials supplied below. The account is preconfigured for Google Play review and gives access to the main application features. No purchase is required inside the Android app.`
+`Open ZoneProspect 360 and tap Sign in. Use the review account credentials supplied below. The account is preconfigured for Google Play review and gives access to the main application features. No purchase is required inside the Android app.`
 
 À compléter avant soumission :
 
@@ -148,7 +148,7 @@ Réponse proposée : **Oui, elle collecte certaines données nécessaires au com
 
 - Collectée : Oui
 - Partagée à des fins publicitaires : Non
-- Obligatoire : Oui pour un compte Signal Deal
+- Obligatoire : Oui pour un compte ZoneProspect 360
 - Finalités : fonctionnement de l'application, gestion du compte, sécurité
 
 #### Informations personnelles — ID utilisateur
@@ -173,7 +173,7 @@ Couvre notamment les données de pipeline, statuts de suivi, notes ou données e
 
 #### Historique des achats
 
-À déclarer uniquement si Play Console considère le statut/formule et les données d'abonnement synchronisées dans Signal Deal comme un historique de transaction utilisateur. L'application Android ne collecte ni numéro de carte ni coordonnées bancaires. Les paiements sont réalisés hors de l'application Android et traités par Stripe sur le Web.
+À déclarer uniquement si Play Console considère le statut/formule et les données d'abonnement synchronisées dans ZoneProspect 360 comme un historique de transaction utilisateur. L'application Android ne collecte ni numéro de carte ni coordonnées bancaires. Les paiements sont réalisés hors de l'application Android et traités par Stripe sur le Web.
 
 ### Données explicitement non collectées par les fonctions Android
 
@@ -189,7 +189,7 @@ Couvre notamment les données de pipeline, statuts de suivi, notes ou données e
 
 ### Fichiers et documents
 
-L'export CSV utilise le sélecteur Android `ACTION_CREATE_DOCUMENT`. L'utilisateur choisit explicitement l'emplacement de destination. Signal Deal n'accède pas de manière générale aux fichiers personnels de l'appareil.
+L'export CSV utilise le sélecteur Android `ACTION_CREATE_DOCUMENT`. L'utilisateur choisit explicitement l'emplacement de destination. ZoneProspect 360 n'accède pas de manière générale aux fichiers personnels de l'appareil.
 
 ### Partage
 
@@ -217,12 +217,12 @@ Réponses proposées :
 
 Le parcours est disponible :
 
-1. depuis Signal Deal : « Supprimer mon compte » ;
+1. depuis ZoneProspect 360 : « Supprimer mon compte » ;
 2. depuis la page Web publique `delete-account.html` ;
 3. authentification obligatoire avant suppression ;
-4. suppression des données Signal Deal associées ;
+4. suppression des données ZoneProspect 360 associées ;
 5. les données légalement requises par un prestataire de paiement peuvent être conservées conformément aux obligations applicables ;
-6. si l'identité technique est partagée avec un autre service du même projet, seules les données et l'accès Signal Deal sont supprimés afin de ne pas détruire le compte de l'autre service.
+6. si l'identité technique est partagée avec un autre service du même projet, seules les données et l'accès ZoneProspect 360 sont supprimés afin de ne pas détruire le compte de l'autre service.
 
 ## Confidentialité
 
@@ -268,7 +268,7 @@ Positionnement attendu : application professionnelle / commerciale, sans violenc
 
 Captures recommandées :
 
-1. écran d'accueil / présentation de Signal Deal ;
+1. écran d'accueil / présentation de ZoneProspect 360 ;
 2. écran de connexion ;
 3. tableau de bord avec opportunités ;
 4. pipeline commercial ;
@@ -278,9 +278,9 @@ Ne pas montrer d'adresse e-mail réelle, identifiant personnel, données de paie
 
 ## Texte de version 1.0.0
 
-Première version Android de Signal Deal.
+Première version Android de ZoneProspect 360.
 
-- accès sécurisé au compte Signal Deal ;
+- accès sécurisé au compte ZoneProspect 360 ;
 - consultation des opportunités commerciales ;
 - suivi du pipeline ;
 - utilisation des fonctionnalités correspondant à la formule active ;
@@ -318,4 +318,4 @@ Google Play demande que la fiche Store corresponde au comportement réel de l'ap
 
 Pour les applications avec connexion, fournir à Google Play des identifiants de démonstration actifs, réutilisables et valides indépendamment de la localisation du reviewer.
 
-Pour une application permettant la création d'un compte, Google Play exige une voie de suppression depuis l'application et une ressource Web externe ; Signal Deal fournit les deux.
+Pour une application permettant la création d'un compte, Google Play exige une voie de suppression depuis l'application et une ressource Web externe ; ZoneProspect 360 fournit les deux.

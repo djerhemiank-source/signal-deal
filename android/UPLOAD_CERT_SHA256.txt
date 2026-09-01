@@ -1,10 +1,10 @@
-Signal Deal — Google Play upload certificate
+ZoneProspect 360 — Google Play upload certificate
 
 Package: fr.signaldeal.app
 Certificate SHA-256:
 5B:C5:3C:F9:DB:91:9A:E3:EA:E3:9E:21:50:EF:93:2A:68:F5:BD:9B:60:55:4D:51:C4:4F:8A:5B:06:11:D5:B6
 
-This fingerprint is public metadata used by CI to ensure that future Play upload bundles are signed with the expected Signal Deal upload certificate.
+This fingerprint is public metadata used by CI to ensure that future Play upload bundles are signed with the expected ZoneProspect 360 upload certificate.
 The private keystore and passwords must never be committed to this repository.
 
-Google Play compliance checks also cover the public privacy policy, authenticated account-deletion endpoint, and the runtime guard that prevents a completed Signal Deal deletion from reopening the app.
+Google Play compliance checks also cover the public privacy policy, authenticated account-deletion endpoint, and the runtime guard that prevents a completed ZoneProspect 360 deletion from reopening the app.

@@ -17,7 +17,7 @@
     const r=Array.isArray(data)?data[0]:data;if(!r)return;
     const host=target();if(!host)return;
     let el=document.getElementById('sdRadarStatus');if(!el){el=document.createElement('div');el.id='sdRadarStatus';el.className='sd-radar-status';host.insertAdjacentElement('afterend',el)}
-    el.innerHTML='<div class="sd-radar-head"><strong><span class="sd-radar-dot"></span>Radar Signal Deal opérationnel</strong><span class="sd-radar-total">'+Number(r.unique_active||0).toLocaleString('fr-FR')+' signaux actifs uniques</span></div>'+
+    el.innerHTML='<div class="sd-radar-head"><strong><span class="sd-radar-dot"></span>Radar ZoneProspect 360 opérationnel</strong><span class="sd-radar-total">'+Number(r.unique_active||0).toLocaleString('fr-FR')+' signaux actifs uniques</span></div>'+
       '<div class="sd-radar-tags"><span class="sd-radar-tag">BOAMP : '+esc(r.boamp_unique||0)+'</span><span class="sd-radar-tag">TED : '+esc(r.ted_unique||0)+'</span><span class="sd-radar-tag">DECP : '+esc(r.decp_unique||0)+' renouvellements probables</span><span class="sd-radar-tag">Actualisation auto : toutes les 6 h</span></div>'+
       '<div class="sd-radar-time">Dernière ingestion détectée : '+esc(fmtDate(r.last_ingested_at))+'. Les doublons et échéances dépassées sont exclus du total.</div>';
   }
