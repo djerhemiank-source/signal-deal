@@ -1,5 +1,5 @@
 'use strict';
-const CACHE='issoire-connect-v18-full';
+const CACHE='issoire-connect-v19-full';
 const LOCAL=['./','index.html','manifest.webmanifest','icon.svg','claim-patch.js','pro-edit-patch.js','search-patch.js','admin-full-patch.js','leaflet-safety-patch.js','directory-patch.js','resident-classifieds-patch.js','directory-route-fix.js','public-classifieds-patch.js','v3-data-0.txt','v3-data-1.txt','v3-data-2.txt','v3-data-3.txt'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(LOCAL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('issoire-connect-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
