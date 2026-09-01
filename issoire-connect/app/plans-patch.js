@@ -5,48 +5,50 @@ const PLANS={
  pro:{label:'Pro',price:'9,99 € / mois',radius:20,features:['Produits/services sans limite de forfait','Offres/promos/invendus sans limite mensuelle','Commandes, devis et réservations en ligne','Publication d’emplois et événements','Campagnes sponsorisées standard','Notifications aux abonnés : jusqu’à 6 alertes / 24 h','Rayon de visibilité jusqu’à 20 km','Jusqu’à 10 annonces professionnelles actives'],blocked:[]},
  proplus:{label:'Pro+',price:'19,99 € / mois',radius:50,features:['Toutes les fonctions Pro','Rayon de visibilité jusqu’à 50 km','Jusqu’à 30 annonces professionnelles actives','Notifications aux abonnés : jusqu’à 12 alertes / 24 h','Campagnes sponsorisées incluses'],blocked:[]}
 };
-const LINKS={
- essential:'https://buy.stripe.com/test_00w14ob7wajWgGb5K518c03',
- pro:'https://buy.stripe.com/test_dRm8wQ2B0cs4cpVb4p18c04',
- proplus:'https://buy.stripe.com/test_00w7sMb7w3VygGb2xT18c05'
-};
+const LINKS={essential:'https://buy.stripe.com/test_00w14ob7wajWgGb5K518c03',pro:'https://buy.stripe.com/test_dRm8wQ2B0cs4cpVb18c04'.replace('bV18','b4p18'),proplus:'https://buy.stripe.com/test_00w7sMb7w3VygGb2xT18c05'};
 function e(v){return typeof esc==='function'?esc(String(v??'')):String(v??'')}
-function currentPlan(){
- if(S.profile?.role==='admin')return 'admin';
- const p=S.subscription?.plan||S.subscriptions?.plan||S.mySubscription?.plan||S.myBusinesses?.[0]?.plan||'free';
- return ['essential','pro','proplus'].includes(p)?p:'free';
-}
-function planCard(k,p,current){
- const isCurrent=current===k;
- return `<article class="card" style="border:${isCurrent?'2px solid #188650':'1px solid var(--line,#dce3ee)'}"><div class="row between"><div><span class="pill">${isCurrent?'✓ FORFAIT ACTUEL':'PRO'}</span><h3 style="margin:8px 0 2px">${e(p.label)}</h3><strong style="font-size:22px">${e(p.price)}</strong></div><span class="pill">📍 ${p.radius} km</span></div><ul style="line-height:1.65;padding-left:20px">${p.features.map(x=>`<li>✅ ${e(x)}</li>`).join('')}${p.blocked.map(x=>`<li class="muted">— ${e(x)}</li>`).join('')}</ul>${isCurrent?'<div class="notice"><b>Ce forfait est actif sur votre compte.</b></div>':`<button class="btn brand" onclick="startIcPlanCheckout('${k}')">Choisir ${e(p.label)}</button>`}</article>`;
-}
-window.openIcPlans=function(){
- const current=currentPlan();
- const html=`<h2>💳 Forfaits professionnels</h2><div class="notice"><b>MODE TEST STRIPE</b><br>Aucun paiement réel n’est encaissé pour le moment. Les droits ci-dessous correspondent aux règles actuellement testées et appliquées par la base.</div><div class="cards" style="margin-top:12px">${Object.entries(PLANS).map(([k,p])=>planCard(k,p,current)).join('')}</div><p class="muted" style="margin-top:12px">Le changement de forfait est appliqué automatiquement après confirmation Stripe via le webhook sécurisé.</p>`;
- if(typeof openModal==='function')openModal(html); else if(typeof main!=='undefined')main.innerHTML=html;
-};
-window.startIcPlanCheckout=function(plan){
- if(!PLANS[plan]||!LINKS[plan])return;
- if(!S.session){if(typeof authModal==='function')return authModal('account');return typeof say==='function'?say('Connectez-vous avec un compte professionnel.'):null}
- if(S.profile?.role==='admin')return typeof say==='function'?say('Le compte administrateur dispose déjà de tous les droits de test.'):null;
- if(S.profile?.role!=='pro')return typeof say==='function'?say('Utilisez un compte professionnel pour souscrire un forfait.'):null;
- const u=new URL(LINKS[plan]);u.searchParams.set('client_reference_id',S.session.user.id);
- window.open(u.toString(),'_blank','noopener,noreferrer');
-};
+function businessById(id){return (S.myBusinesses||[]).find(x=>x.id===id)||(S.businesses||[]).find(x=>x.id===id)||null}
+function planOfBusiness(b){const p=b?.plan||'free';return ['essential','pro','proplus'].includes(p)?p:'free'}
+function currentPlan(){if(S.profile?.role==='admin')return 'admin';const p=S.subscription?.plan||S.subscriptions?.plan||S.mySubscription?.plan||S.myBusinesses?.[0]?.plan||'free';return ['essential','pro','proplus'].includes(p)?p:'free'}
+function canTransactions(p){return p==='pro'||p==='proplus'}
+function canJobsEvents(p){return p==='pro'||p==='proplus'}
+function canAds(p){return p==='pro'||p==='proplus'}
+function monthCountOffers(bid){const now=new Date();return (S.offers||[]).filter(o=>o.business_id===bid&&(!o.created_at||(new Date(o.created_at).getFullYear()===now.getFullYear()&&new Date(o.created_at).getMonth()===now.getMonth()))).length}
+function activeProductCount(bid){return (S.products||[]).filter(p=>p.business_id===bid&&p.is_active!==false).length}
+function upgrade(feature,need='Pro'){const label=need==='Essential'?'Essential — 4,99 €':need==='Pro+'?'Pro+ — 19,99 €':'Pro — 9,99 €';const html=`<h2>🔒 ${e(feature)}</h2><p>Cette fonction n’est pas incluse dans votre forfait actuel.</p><div class="notice">Passez au forfait <b>${label}</b> pour l’activer.</div><div class="actions"><button class="btn brand" onclick="closeModal();openIcPlans()">Voir les forfaits</button><button class="btn" onclick="closeModal()">Fermer</button></div>`;if(typeof openModal==='function')openModal(html);else if(typeof say==='function')say(`${feature} nécessite ${label}.`)}
+function offlineContact(b,kind){const label=kind==='reserve'?'Réservation en ligne':'Commande / devis en ligne';const actions=[];if(b?.owner_id)actions.push(`<button class="btn brand" onclick="closeModal();messageBusiness('${e(b.id)}')">💬 Envoyer un message</button>`);if(b?.phone)actions.push(`<a class="btn" href="tel:${e(b.phone)}">📞 Appeler</a>`);actions.push('<button class="btn" onclick="closeModal()">Fermer</button>');openModal(`<h2>${label}</h2><p>Ce commerce utilise actuellement le forfait <b>${e(PLANS[planOfBusiness(b)]?.label||'gratuit')}</b>. La transaction en ligne n’est donc pas activée.</p><div class="notice">Vous pouvez quand même contacter directement le commerce.</div><div class="actions">${actions.join('')}</div>`)}
+function planCard(k,p,current){const isCurrent=current===k;return `<article class="card" style="border:${isCurrent?'2px solid #188650':'1px solid var(--line,#dce3ee)'}"><div class="row between"><div><span class="pill">${isCurrent?'✓ FORFAIT ACTUEL':'PRO'}</span><h3 style="margin:8px 0 2px">${e(p.label)}</h3><strong style="font-size:22px">${e(p.price)}</strong></div><span class="pill">📍 ${p.radius} km</span></div><ul style="line-height:1.65;padding-left:20px">${p.features.map(x=>`<li>✅ ${e(x)}</li>`).join('')}${p.blocked.map(x=>`<li class="muted">— ${e(x)}</li>`).join('')}</ul>${isCurrent?'<div class="notice"><b>Ce forfait est actif sur votre compte.</b></div>':`<button class="btn brand" onclick="startIcPlanCheckout('${k}')">Choisir ${e(p.label)}</button>`}</article>`}
+window.openIcPlans=function(){const current=currentPlan();const html=`<h2>💳 Forfaits professionnels</h2><div class="notice"><b>MODE TEST STRIPE</b><br>Aucun paiement réel n’est encaissé pour le moment. Les droits ci-dessous correspondent aux règles actuellement testées et appliquées par la base.</div><div class="cards" style="margin-top:12px">${Object.entries(PLANS).map(([k,p])=>planCard(k,p,current)).join('')}</div><p class="muted" style="margin-top:12px">Le changement de forfait est appliqué automatiquement après confirmation Stripe via le webhook sécurisé.</p>`;if(typeof openModal==='function')openModal(html);else if(typeof main!=='undefined')main.innerHTML=html};
+window.startIcPlanCheckout=function(plan){if(!PLANS[plan]||!LINKS[plan])return;if(!S.session){if(typeof authModal==='function')return authModal('account');return typeof say==='function'?say('Connectez-vous avec un compte professionnel.'):null}if(S.profile?.role==='admin')return typeof say==='function'?say('Le compte administrateur dispose déjà de tous les droits de test.'):null;if(S.profile?.role!=='pro')return typeof say==='function'?say('Utilisez un compte professionnel pour souscrire un forfait.'):null;const u=new URL(LINKS[plan]);u.searchParams.set('client_reference_id',S.session.user.id);window.open(u.toString(),'_blank','noopener,noreferrer')};
 window.icPlanEntitlements=PLANS;
+
+// Keep every commercial screen aligned with the server-side entitlements.
+if(typeof pricingHtml==='function'){
+ window.pricingHtml=function(logged,current){const ref=logged&&S.session?`?client_reference_id=${encodeURIComponent(S.session.user.id)}`:'';const rows=[['essential','Essential','4,99 €','5 km · 20 produits/services · 2 offres ou invendus/mois · messagerie'],['pro','Pro','9,99 €','20 km · catalogue/offres sans limite de forfait · commandes/devis/réservations · emplois/événements · pub sponsorisée standard'],['proplus','Pro+','19,99 €','50 km · tout Pro · davantage d’annonces et notifications · campagnes sponsorisées incluses']];return `<div class="cards">${rows.map(p=>`<div class="plan ${p[0]==='pro'?'pop':''}"><h3>${p[1]}</h3><div class="amount">${p[2]} <small>/mois</small></div><p class="muted">${p[3]}</p>${current===p[0]?'<span class="pill">Formule actuelle</span>':logged?`<button class="btn brand" onclick="startIcPlanCheckout('${p[0]}')">Tester l’abonnement</button>`:'<button class="btn brand" onclick="authModal(\'account\')">Créer un compte pro</button>'}</div>`).join('')}</div>`}
+}
+
+const baseNewProduct=typeof newProduct==='function'?newProduct:null;
+const baseNewOffer=typeof newOffer==='function'?newOffer:null;
+const baseNewJob=typeof newJob==='function'?newJob:null;
+const baseNewEvent=typeof newBusinessEvent==='function'?newBusinessEvent:null;
+const baseReserve=typeof reserveOffer==='function'?reserveOffer:null;
+const baseOrder=typeof orderProduct==='function'?orderProduct:null;
+
+if(baseNewProduct)window.newProduct=function(bid){const p=planOfBusiness(businessById(bid));if(p==='free')return upgrade('Publication de produits/services','Essential');if(p==='essential'&&activeProductCount(bid)>=20)return upgrade('Limite de 20 produits/services atteinte','Pro');return baseNewProduct(bid)};
+if(baseNewOffer)window.newOffer=function(bid,type){const p=planOfBusiness(businessById(bid));if(p==='free')return upgrade('Publication d’offres','Essential');if(p==='essential'&&monthCountOffers(bid)>=2)return upgrade('Limite de 2 offres ou invendus ce mois-ci atteinte','Pro');return baseNewOffer(bid,type)};
+if(baseNewJob)window.newJob=function(bid){const p=planOfBusiness(businessById(bid));if(!canJobsEvents(p))return upgrade('Publication d’offres d’emploi','Pro');return baseNewJob(bid)};
+if(baseNewEvent)window.newBusinessEvent=function(bid){const p=planOfBusiness(businessById(bid));if(!canJobsEvents(p))return upgrade('Publication d’événements professionnels','Pro');return baseNewEvent(bid)};
+window.newAd=function(bid){const b=businessById(bid),p=planOfBusiness(b);if(!canAds(p))return upgrade('Campagnes sponsorisées','Pro');const note=p==='proplus'?'Pro+ : campagne sponsorisée incluse.':'Pro : campagne sponsorisée standard.';openModal(`<h2>Campagne sponsorisée</h2><div class="notice">${note}</div><div class="form" style="margin-top:10px"><input id="at" placeholder="Titre de la promotion"><input id="au" placeholder="Lien cible (facultatif)"><select id="ad"><option value="10">10 secondes</option><option value="15" selected>15 secondes</option><option value="20">20 secondes</option><option value="30">30 secondes</option></select><button class="btn primary" onclick="saveAd('${e(bid)}')">Lancer la campagne</button></div>`)};
+if(baseReserve)window.reserveOffer=function(id){const o=(S.offers||[]).find(x=>x.id===id),b=businessById(o?.business_id);if(b&&!canTransactions(planOfBusiness(b)))return offlineContact(b,'reserve');return baseReserve(id)};
+if(baseOrder)window.orderProduct=function(id){const p=(S.products||[]).find(x=>x.id===id),b=businessById(p?.business_id);if(b&&!canTransactions(planOfBusiness(b)))return offlineContact(b,'order');return baseOrder(id)};
+
 if(typeof proAccount==='function'){
- const _proAccountPlans=proAccount;
- window.proAccount=function(...args){
-  const r=_proAccountPlans(...args);
-  setTimeout(()=>{
-   if(typeof main==='undefined'||document.getElementById('icPlanPanel'))return;
-   const cur=currentPlan();
-   const p=PLANS[cur];
-   const box=document.createElement('section');box.id='icPlanPanel';box.className='card';box.style.marginBottom='14px';
-   box.innerHTML=cur==='admin'?'<div class="row between"><div><span class="pill">👑 ADMIN</span><h3 style="margin:7px 0">Tous les droits de test</h3><div class="muted">Le compte administrateur n’est pas soumis aux limites commerciales.</div></div><button class="btn brand" onclick="openIcPlans()">Voir les forfaits</button></div>':p?`<div class="row between"><div><span class="pill">FORFAIT ACTUEL</span><h3 style="margin:7px 0">${e(p.label)} · ${e(p.price)}</h3><div class="muted">Rayon maximum ${p.radius} km · droits contrôlés côté serveur.</div></div><button class="btn brand" onclick="openIcPlans()">Comparer / changer</button></div>`:'<div class="row between"><div><span class="pill">FORFAIT GRATUIT</span><h3 style="margin:7px 0">Passez à un forfait professionnel</h3><div class="muted">Activez les publications et fonctions professionnelles.</div></div><button class="btn brand" onclick="openIcPlans()">Voir les forfaits</button></div>';
-   main.prepend(box);
-  },0);
-  return r;
- };
+ const baseProAccount=proAccount;
+ window.proAccount=function(...args){const r=baseProAccount(...args);setTimeout(()=>{
+  if(typeof main==='undefined')return;const cur=currentPlan(),p=PLANS[cur];
+  if(!document.getElementById('icPlanPanel')){const box=document.createElement('section');box.id='icPlanPanel';box.className='card';box.style.marginBottom='14px';box.innerHTML=cur==='admin'?'<div class="row between"><div><span class="pill">👑 ADMIN</span><h3 style="margin:7px 0">Tous les droits de test</h3><div class="muted">Le compte administrateur n’est pas soumis aux limites commerciales.</div></div><button class="btn brand" onclick="openIcPlans()">Voir les forfaits</button></div>':p?`<div class="row between"><div><span class="pill">FORFAIT ACTUEL</span><h3 style="margin:7px 0">${e(p.label)} · ${e(p.price)}</h3><div class="muted">Rayon maximum ${p.radius} km · droits contrôlés côté serveur.</div></div><button class="btn brand" onclick="openIcPlans()">Comparer / changer</button></div>`:'<div class="row between"><div><span class="pill">FORFAIT GRATUIT</span><h3 style="margin:7px 0">Passez à un forfait professionnel</h3><div class="muted">Activez les publications et fonctions professionnelles.</div></div><button class="btn brand" onclick="openIcPlans()">Voir les forfaits</button></div>';main.prepend(box)}
+  const b=S.myBusinesses?.[0];if(!b)return;const bp=planOfBusiness(b);const usage=document.createElement('section');usage.id='icPlanUsage';usage.className='notice';const prod=activeProductCount(b.id),off=monthCountOffers(b.id);usage.innerHTML=bp==='essential'?`<b>Utilisation Essential :</b> ${prod}/20 produits/services · ${off}/2 offres ou invendus ce mois-ci. Les boutons Emploi, Événement et Pub locale ouvrent une proposition de passage à Pro.`:bp==='pro'?'<b>Droits Pro actifs :</b> commandes/devis/réservations, emplois, événements et campagnes sponsorisées standard.':'<b>Droits Pro+ actifs :</b> toutes les fonctions Pro avec rayon jusqu’à 50 km.';const grid=[...main.querySelectorAll('.gridmenu')].find(g=>/Produit\/service/i.test(g.innerText||''));if(grid&&!document.getElementById('icPlanUsage'))grid.before(usage);
+  if(grid){[...grid.querySelectorAll('button.tile')].forEach(btn=>{const t=btn.innerText||'';let locked=false;if(bp==='free')locked=true;else if(bp==='essential'&&/(Emploi|Événement|Pub locale)/i.test(t))locked=true;if(locked&&!/🔒/.test(t)){btn.querySelector('span')?.insertAdjacentText('afterbegin','🔒 ');btn.title='Cette fonction nécessite un forfait supérieur';btn.style.opacity='.72'}})}
+ },0);return r}
 }
 })();
