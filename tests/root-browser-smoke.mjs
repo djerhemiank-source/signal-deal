@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 
 const BASE=process.env.SMOKE_BASE_URL||'http://127.0.0.1:4173/';
-const PORTAL_URL='https://eazukvtjxeirbitukueb.supabase.co/functions/v1/signal-deal-billing-portal';
+const PORTAL_URL='https://eazukvtjxeirbitukueb.supabase.co/functions/v1/signal-deal-billing-manager';
 const SUPABASE_KEY='sb_publishable_OIOSgs39cGT6s34eVuexIA_5bZGmZVj';
 
 async function checkBillingPortalSecurity(){
