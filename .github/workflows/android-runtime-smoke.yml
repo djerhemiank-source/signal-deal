@@ -1,0 +1,119 @@
+name: Smoke Signal Deal Android Runtime
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - android/**
+      - .github/workflows/android-runtime-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Install Android emulator API 36
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "platform-tools" \
+            "emulator" \
+            "system-images;android-36;google_apis;x86_64"
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
+            -n signal_deal_api36 \
+            -k "system-images;android-36;google_apis;x86_64" \
+            --force
+
+      - name: Build debug APK
+        working-directory: android
+        run: gradle --no-daemon --stacktrace assembleDebug
+
+      - name: Start API 36 emulator
+        run: |
+          sudo chmod 666 /dev/kvm || true
+          nohup "$ANDROID_HOME/emulator/emulator" \
+            -avd signal_deal_api36 \
+            -no-window -no-audio -no-boot-anim \
+            -gpu swiftshader_indirect \
+            -no-snapshot -wipe-data \
+            > /tmp/signal-deal-emulator.log 2>&1 &
+          adb wait-for-device
+          for i in {1..120}; do
+            BOOT=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            if [ "$BOOT" = "1" ]; then break; fi
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+          adb shell input keyevent 82 || true
+
+      - name: Install and launch Signal Deal
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          adb install -r "$APK"
+          adb logcat -c
+          adb shell am start -W -n fr.signaldeal.app/.MainActivity | tee /tmp/activity-start.txt
+          grep -q "Status: ok" /tmp/activity-start.txt
+
+          for i in {1..60}; do
+            adb logcat -d -s SignalDeal:I '*:S' > /tmp/signal-deal-app.log || true
+            if grep -q 'PAGE_FINISHED https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log; then break; fi
+            sleep 2
+          done
+
+          grep -q 'PAGE_FINISHED https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log
+          ! grep -E 'MAIN_FRAME_ERROR|SSL_ERROR' /tmp/signal-deal-app.log
+
+          PID=$(adb shell pidof -s fr.signaldeal.app | tr -d '\r')
+          test -n "$PID"
+          adb shell dumpsys activity activities > /tmp/signal-deal-activity.txt
+          grep -E 'mResumedActivity|topResumedActivity' /tmp/signal-deal-activity.txt | grep -q 'fr.signaldeal.app'
+          adb logcat --pid="$PID" -d > /tmp/signal-deal-process.log || true
+          ! grep -E 'FATAL EXCEPTION|Process: fr.signaldeal.app.*has died' /tmp/signal-deal-process.log
+
+      - name: Capture Android UI evidence
+        if: always()
+        run: |
+          adb exec-out screencap -p > /tmp/signal-deal-android.png || true
+          adb shell uiautomator dump /sdcard/signal-deal-ui.xml || true
+          adb pull /sdcard/signal-deal-ui.xml /tmp/signal-deal-ui.xml || true
+          adb shell dumpsys activity activities > /tmp/signal-deal-activity.txt || true
+          adb logcat -d -s SignalDeal:I '*:S' > /tmp/signal-deal-app.log || true
+          adb logcat -d > /tmp/signal-deal-logcat.txt || true
+          cp /tmp/activity-start.txt /tmp/signal-deal-activity-start.txt 2>/dev/null || true
+
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-deal-android-runtime-evidence
+          path: |
+            /tmp/signal-deal-android.png
+            /tmp/signal-deal-ui.xml
+            /tmp/signal-deal-app.log
+            /tmp/signal-deal-process.log
+            /tmp/signal-deal-activity.txt
+            /tmp/signal-deal-logcat.txt
+            /tmp/signal-deal-activity-start.txt
+            /tmp/signal-deal-emulator.log
+          if-no-files-found: warn
+          retention-days: 14
