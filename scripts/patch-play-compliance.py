@@ -14,13 +14,13 @@ if old_controls not in s and new_controls not in s:
 s = s.replace(old_controls, new_controls)
 p.write_text(s, encoding='utf-8')
 
-# Add persistent smoke assertions for Play compliance pages/links.
+# Add persistent smoke assertions for Play compliance links.
 t = Path('tests/root-browser-smoke.mjs')
 ts = t.read_text(encoding='utf-8')
-marker = "if (html.match(/sk_(live|test)_/i)) throw new Error('Stripe secret key exposed in HTML');"
-addition = """if (html.match(/sk_(live|test)_/i)) throw new Error('Stripe secret key exposed in HTML');
-  if (!html.includes('./privacy.html')) throw new Error('Privacy policy link missing');
-  if (!html.includes('./delete-account.html')) throw new Error('Account deletion link missing');"""
+marker = "  assert.equal(diagnostics.stripeSecretExposed,false,name+': clé Stripe secrète exposée dans le navigateur');"
+addition = """  assert.equal(diagnostics.stripeSecretExposed,false,name+': clé Stripe secrète exposée dans le navigateur');
+  assert((await page.locator('a[href=\"./privacy.html\"]').count())>0,name+': Privacy policy link missing');
+  assert((await page.locator('a[href=\"./delete-account.html\"]').count())>0,name+': Account deletion link missing');"""
 if marker in ts and 'Privacy policy link missing' not in ts:
     ts = ts.replace(marker, addition)
 
