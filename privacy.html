@@ -23,6 +23,7 @@
 <li><strong>Compte :</strong> adresse e-mail, identifiant utilisateur Supabase et, si fourni lors de l’inscription, nom affiché.</li>
 <li><strong>Abonnement :</strong> formule, statut, date de fin de période, indicateur de résiliation et identifiants techniques Stripe du client, de l’abonnement, du prix et du produit.</li>
 <li><strong>Pipeline commercial :</strong> opportunités enregistrées, statut de suivi, dates de création/mise à jour et éventuelles notes associées.</li>
+<li><strong>Prospection et commissions enregistrées :</strong> prospects locaux sauvegardés et données de calcul de commission lorsqu’elles sont enregistrées dans le compte.</li>
 <li><strong>Données techniques nécessaires au service :</strong> requêtes HTTPS et informations techniques pouvant apparaître dans les journaux de sécurité et d’exploitation de nos prestataires d’infrastructure.</li>
 </ul>
 <p>Les opportunités commerciales affichées proviennent de sources publiques, notamment de données de marchés publics. Elles ne constituent pas des données personnelles fournies par l’utilisateur.</p>
@@ -51,12 +52,13 @@
 <p>Les communications avec Signal Deal, Supabase et Stripe utilisent HTTPS/TLS. Les clés secrètes serveur ne sont pas intégrées dans l’application Android ou dans le code Web public. Les accès aux données personnelles sont protégés par l’authentification et des règles de contrôle d’accès côté base de données.</p>
 
 <h2>6. Conservation</h2>
-<p>Les données de compte et de pipeline sont conservées tant que le compte reste actif ou tant qu’elles sont nécessaires au fonctionnement du service. Lorsqu’une suppression de compte est demandée, les données liées au compte sont supprimées après traitement de la demande, sous réserve des informations qu’un prestataire de paiement ou la loi impose de conserver pour des obligations comptables, fiscales, de sécurité ou de prévention de la fraude.</p>
+<p>Les données de compte et de pipeline sont conservées tant que le compte reste actif ou tant qu’elles sont nécessaires au fonctionnement du service. Lorsqu’une suppression de compte est demandée et qu’aucune facturation active ne doit d’abord être arrêtée, les données Signal Deal sont supprimées par une fonction serveur authentifiée. Les informations qu’un prestataire de paiement ou la loi impose de conserver peuvent rester conservées pour des obligations comptables, fiscales, de sécurité ou de prévention de la fraude.</p>
+<p>Lorsque l’identité d’authentification technique est également utilisée par un autre service du même projet, Signal Deal conserve uniquement le minimum technique nécessaire pour empêcher la réactivation automatique de l’accès Signal Deal sans supprimer l’autre compte. L’adresse e-mail est retirée du marqueur Signal Deal de suppression ; l’identité globale reste gérée par l’autre service.</p>
 
 <h2 id="suppression">7. Suppression du compte et des données</h2>
 <p>Vous pouvez demander la suppression du compte Signal Deal et des données associées depuis l’application ou depuis la ressource Web dédiée :</p>
-<p><a href="./delete-account.html"><strong>Demander la suppression de mon compte Signal Deal →</strong></a></p>
-<p>Si un abonnement payant est encore actif, la demande est enregistrée immédiatement mais la résiliation de l’abonnement doit être finalisée avant la suppression définitive du compte afin d’éviter une facturation sans accès au service. Cette étape et le traitement de la suppression sont coordonnés dans la demande. Les demandes sont traitées dans un délai maximal de 30 jours.</p>
+<p><a href="./delete-account.html"><strong>Supprimer mon compte Signal Deal →</strong></a></p>
+<p>La demande nécessite une authentification du titulaire. Si un abonnement payant live peut encore générer une facturation, la demande est enregistrée mais la suppression définitive est bloquée jusqu’à sa résiliation afin d’éviter une facturation sans accès au service. Dans les autres cas, la suppression serveur efface les données Signal Deal rattachées au compte. Si l’identité Supabase est exclusivement utilisée par Signal Deal, elle est également supprimée ; si elle est partagée avec un autre service, elle est conservée uniquement pour cet autre service et l’accès Signal Deal est désactivé.</p>
 
 <h2>8. Vos choix</h2>
 <p>Vous pouvez vous déconnecter à tout moment, retirer des opportunités de votre pipeline et demander la suppression du compte. Aucun accès à la localisation, aux contacts, au microphone ou à la caméra n’est requis par Signal Deal.</p>
