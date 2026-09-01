@@ -95,6 +95,16 @@ async function run(name,viewport){
   const heap=await page.evaluate(()=>performance.memory?.usedJSHeapSize||0);
   if(heap) assert(heap<90*1024*1024,name+': mémoire excessive '+Math.round(heap/1024/1024)+' Mo');
   assert.equal(errors.length,0,name+': erreurs après stress '+errors.join(' | '));
+
+  const playPage=await context.newPage();
+  await playPage.goto(new URL('?platform=android-play',BASE).href,{waitUntil:'networkidle',timeout:20000});
+  assert.equal(await playPage.evaluate(()=>IS_ANDROID_PLAY),true,name+': mode Android Play non détecté');
+  assert.equal(await playPage.locator('.purchase-cta:visible').count(),0,name+': CTA Stripe visible dans la version Play');
+  assert.equal(await playPage.locator('#manageSubscriptionBtn').isVisible(),false,name+': gestion Stripe visible dans la version Play');
+  assert.equal(await playPage.locator('#changePlanBtn').isVisible(),false,name+': changement de formule visible dans la version Play');
+  assert.match(await playPage.locator('#playStoreNotice').innerText(),/achats ne sont pas proposés/i);
+  await playPage.close();
+
   await browser.close();
   return {name,loadMs,heapMb:heap?Math.round(heap/1024/1024):null,controls:diagnostics.controls};
 }
