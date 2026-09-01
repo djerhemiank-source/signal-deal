@@ -9,6 +9,8 @@ import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowInsets;
@@ -30,9 +32,12 @@ public class MainActivity extends Activity {
     private static final String TAG = "SignalDeal";
     private static final String START_URL = "https://djerhemiank-source.github.io/signal-deal/?platform=android-play";
     private static final int CREATE_CSV_REQUEST = 4107;
+    private static final int MAX_NETWORK_RETRIES = 3;
 
     private WebView webView;
     private String pendingCsv;
+    private final Handler retryHandler = new Handler(Looper.getMainLooper());
+    private int networkRetryCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,6 +140,29 @@ public class MainActivity extends Activity {
         }
     }
 
+    private boolean isTransientNetworkError(WebResourceError error) {
+        if (error == null) return true;
+        int code = error.getErrorCode();
+        return code == WebViewClient.ERROR_HOST_LOOKUP
+            || code == WebViewClient.ERROR_CONNECT
+            || code == WebViewClient.ERROR_IO
+            || code == WebViewClient.ERROR_TIMEOUT
+            || code == WebViewClient.ERROR_UNKNOWN;
+    }
+
+    private void scheduleNetworkRetry() {
+        if (networkRetryCount >= MAX_NETWORK_RETRIES || webView == null) return;
+        networkRetryCount++;
+        final int attempt = networkRetryCount;
+        long delayMs = 1500L * attempt;
+        Log.w(TAG, "NETWORK_RETRY_SCHEDULED attempt=" + attempt + " delayMs=" + delayMs);
+        retryHandler.postDelayed(() -> {
+            if (webView == null || isFinishing() || isDestroyed()) return;
+            Log.i(TAG, "NETWORK_RETRY attempt=" + attempt);
+            webView.loadUrl(START_URL);
+        }, delayMs);
+    }
+
     private final class SignalDealWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -170,12 +198,20 @@ public class MainActivity extends Activity {
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
             Log.i(TAG, "PAGE_FINISHED " + url);
+            view.evaluateJavascript("document.title || ''", title -> {
+                if (title != null && title.contains("Signal Deal")) {
+                    retryHandler.removeCallbacksAndMessages(null);
+                    networkRetryCount = 0;
+                    Log.i(TAG, "PAGE_READY " + url);
+                }
+            });
         }
 
         @Override
         public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
             Log.e(TAG, "SSL_ERROR " + (error == null ? "unknown" : error.getPrimaryError()));
             handler.cancel();
+            retryHandler.removeCallbacksAndMessages(null);
             Toast.makeText(MainActivity.this, "Connexion sécurisée refusée.", Toast.LENGTH_LONG).show();
         }
 
@@ -185,6 +221,10 @@ public class MainActivity extends Activity {
             if (request.isForMainFrame()) {
                 String description = error == null || error.getDescription() == null ? "unknown" : error.getDescription().toString();
                 Log.e(TAG, "MAIN_FRAME_ERROR " + description);
+                if (isTransientNetworkError(error) && networkRetryCount < MAX_NETWORK_RETRIES) {
+                    scheduleNetworkRetry();
+                    return;
+                }
                 Toast.makeText(MainActivity.this,
                     "Signal Deal est momentanément inaccessible. Vérifiez votre connexion.",
                     Toast.LENGTH_LONG).show();
@@ -249,6 +289,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         pendingCsv = null;
+        retryHandler.removeCallbacksAndMessages(null);
         if (webView != null) {
             webView.removeJavascriptInterface("SignalDealAndroid");
             webView.stopLoading();
