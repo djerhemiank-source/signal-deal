@@ -1,0 +1,139 @@
+name: Rebrand ZoneProspect 360
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rebrand-zoneprospect360.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  rebrand:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply ZoneProspect 360 branding
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re, xml.etree.ElementTree as ET
+
+          root = Path('.')
+          skip_dirs = {'.git', '.github', 'issoire-connect'}
+          text_exts = {'.html', '.js', '.json', '.webmanifest', '.md', '.txt', '.xml', '.gradle', '.yml', '.yaml'}
+
+          replacements = [
+              ('SIGNAL <b>DEAL</b>', 'ZONEPROSPECT <b>360</b>'),
+              ('Signal <b>Deal</b>', 'ZoneProspect <b>360</b>'),
+              ('SIGNAL DEAL', 'ZONEPROSPECT 360'),
+              ('Signal Deal', 'ZoneProspect 360'),
+              ('signal deal', 'zoneprospect 360'),
+          ]
+
+          changed = []
+          for path in root.rglob('*'):
+              if not path.is_file():
+                  continue
+              if any(part in skip_dirs for part in path.parts):
+                  continue
+              if path.suffix.lower() not in text_exts:
+                  continue
+              try:
+                  original = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              updated = original
+              for old, new in replacements:
+                  updated = updated.replace(old, new)
+              if updated != original:
+                  path.write_text(updated, encoding='utf-8')
+                  changed.append(str(path))
+
+          # Brand-visible Android label. Keep applicationId/package stable for update continuity.
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          if manifest.exists():
+              text = manifest.read_text(encoding='utf-8')
+              text = re.sub(r'android:label="[^"]+"', 'android:label="ZoneProspect 360"', text, count=1)
+              manifest.write_text(text, encoding='utf-8')
+
+          # New Android launcher foreground: radar + location target, no legacy SD initials.
+          android_icon = Path('android/app/src/main/res/drawable/ic_launcher_foreground.xml')
+          android_icon.write_text('''<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#68D5FF" android:strokeWidth="4" android:pathData="M54,18 A36,36 0,1 1,53.9 18" />
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#314B72" android:strokeWidth="3" android:pathData="M54,30 A24,24 0,1 1,53.9 30" />
+              <path android:fillColor="#5BE39D" android:pathData="M54,29 C42,29 34,38 34,49 C34,65 54,82 54,82 C54,82 74,65 74,49 C74,38 66,29 54,29 Z" />
+              <path android:fillColor="#07101F" android:pathData="M54,40 A9,9 0,1 1,53.9 40" />
+              <path android:fillColor="#68D5FF" android:pathData="M54,45 A4,4 0,1 1,53.9 45" />
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#F1F5FF" android:strokeWidth="3" android:strokeLineCap="round" android:pathData="M20,54 L32,54 M76,54 L88,54 M54,18 L54,28 M54,82 L54,92" />
+          </vector>
+          ''', encoding='utf-8')
+
+          # Matching installable PWA icon.
+          pwa_icon = Path('pwa/icon.svg')
+          pwa_icon.write_text('''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+            <rect width="512" height="512" rx="112" fill="#07101f"/>
+            <circle cx="256" cy="256" r="184" fill="#101a2f" stroke="#68d5ff" stroke-width="18"/>
+            <circle cx="256" cy="256" r="124" fill="none" stroke="#314b72" stroke-width="13"/>
+            <path d="M256 132c-72 0-120 52-120 118 0 94 120 190 120 190s120-96 120-190c0-66-48-118-120-118z" fill="#5be39d"/>
+            <circle cx="256" cy="250" r="54" fill="#07101f"/>
+            <circle cx="256" cy="250" r="22" fill="#68d5ff"/>
+            <path d="M76 256h62M374 256h62M256 76v58M256 378v58" stroke="#f1f5ff" stroke-width="16" stroke-linecap="round"/>
+          </svg>''', encoding='utf-8')
+
+          # Validate critical manifest formats after edit.
+          ET.parse('android/app/src/main/AndroidManifest.xml')
+          ET.parse('android/app/src/main/res/drawable/ic_launcher_foreground.xml')
+          for manifest_path in [Path('pwa/manifest.webmanifest'), Path('lite/manifest.webmanifest')]:
+              if manifest_path.exists():
+                  json.loads(manifest_path.read_text(encoding='utf-8'))
+
+          # Ensure no user-facing legacy brand phrase remains in this product tree.
+          leftovers = []
+          for path in root.rglob('*'):
+              if not path.is_file() or any(part in skip_dirs for part in path.parts):
+                  continue
+              if path.suffix.lower() not in text_exts:
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              if 'Signal Deal' in text or 'SIGNAL DEAL' in text:
+                  leftovers.append(str(path))
+          if leftovers:
+              raise SystemExit('Legacy visible branding remains in: ' + ', '.join(leftovers))
+
+          print('Rebranded files:', len(changed))
+          for path in changed:
+              print(' -', path)
+          PY
+
+      - name: Run lightweight tests
+        shell: bash
+        run: |
+          if [ -f tests/lite-core.test.js ]; then node --test tests/lite-core.test.js; fi
+
+      - name: Commit rebrand
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No rebrand changes needed.'
+            exit 0
+          fi
+          git config user.name 'ZoneProspect 360 Rebrand'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: complete ZoneProspect 360 rebrand'
+          git push origin HEAD:main
