@@ -34,7 +34,7 @@ async function run(name,viewport){
   assert.equal(diagnostics.observers,false,name+': boucle DOM/minuterie détectée');
   assert.equal(diagnostics.brandHref,'./',name+': lien accueil invalide');
 
-  await page.locator('a[href="#pricing"]').first().click();
+  await page.locator('a[href="#pricing"]:visible').first().click();
   assert.equal(await page.evaluate(()=>location.hash),'#pricing');
   await page.locator('#authTop').click();
   assert.equal(await page.evaluate(()=>location.hash),'#authSection');
@@ -60,7 +60,7 @@ async function run(name,viewport){
 
   for(let i=0;i<30;i++){
     await page.click(i%2?'#signupTab':'#loginTab');
-    await page.locator('a[href="#pricing"]').first().click();
+    await page.locator('a[href="#pricing"]:visible').first().click();
     await page.locator('#authTop').click();
   }
   const heap=await page.evaluate(()=>performance.memory?.usedJSHeapSize||0);
