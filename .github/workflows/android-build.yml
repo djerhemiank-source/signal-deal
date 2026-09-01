@@ -1,4 +1,4 @@
-name: Build Signal Deal Android
+name: Build ZoneProspect 360 Android
 
 on:
   push:
@@ -43,30 +43,32 @@ jobs:
           grep -q "compileSdk 36" android/app/build.gradle
           grep -q "targetSdk 36" android/app/build.gradle
           grep -q "applicationId 'fr.signaldeal.app'" android/app/build.gradle
+          grep -q "applicationIdSuffix '.zoneprospect360'" android/app/build.gradle
+          grep -q "android:label=\"ZoneProspect 360\"" android/app/src/main/AndroidManifest.xml
           grep -q "usesCleartextTraffic=\"false\"" android/app/src/main/AndroidManifest.xml
           grep -q "MIXED_CONTENT_NEVER_ALLOW" android/app/src/main/java/fr/signaldeal/app/MainActivity.java
-          grep -q "SignalDealAndroidPlay" android/app/src/main/java/fr/signaldeal/app/MainActivity.java
 
-      - name: Build debug APK and unsigned release AAB
+      - name: Build test APK and unsigned release AAB
         working-directory: android
         run: gradle --no-daemon --stacktrace clean assembleDebug bundleRelease
 
-      - name: Verify APK target SDK and package
+      - name: Verify APK label SDK and package
         run: |
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           AAB="android/app/build/outputs/bundle/release/app-release.aab"
           test -s "$APK"
           test -s "$AAB"
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee /tmp/signal-deal-badging.txt
-          grep -q "package: name='fr.signaldeal.app'" /tmp/signal-deal-badging.txt
-          grep -q "targetSdkVersion:'36'" /tmp/signal-deal-badging.txt
-          grep -q "sdkVersion:'26'" /tmp/signal-deal-badging.txt
-          cp "$AAB" /tmp/signal-deal-release-unsigned.aab
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee /tmp/zoneprospect360-badging.txt
+          grep -q "package: name='fr.signaldeal.app.zoneprospect360'" /tmp/zoneprospect360-badging.txt
+          grep -q "application-label:'ZoneProspect 360'" /tmp/zoneprospect360-badging.txt
+          grep -q "targetSdkVersion:'36'" /tmp/zoneprospect360-badging.txt
+          grep -q "sdkVersion:'26'" /tmp/zoneprospect360-badging.txt
+          cp "$AAB" /tmp/zoneprospect360-release-unsigned.aab
 
-      - name: Upload debug APK
+      - name: Upload directly installable test APK
         uses: actions/upload-artifact@v4
         with:
-          name: signal-deal-android-debug-apk
+          name: zoneprospect360-android-test-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
@@ -74,8 +76,8 @@ jobs:
       - name: Upload unsigned release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: signal-deal-android-release-aab-unsigned
-          path: /tmp/signal-deal-release-unsigned.aab
+          name: zoneprospect360-android-release-aab-unsigned
+          path: /tmp/zoneprospect360-release-unsigned.aab
           if-no-files-found: error
           retention-days: 14
 
@@ -87,7 +89,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
         run: |
-          KEYSTORE="$RUNNER_TEMP/signal-deal-upload.jks"
+          KEYSTORE="$RUNNER_TEMP/zoneprospect360-upload.jks"
           printf '%s' "$ANDROID_UPLOAD_KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
           chmod 600 "$KEYSTORE"
 
@@ -106,14 +108,14 @@ jobs:
           AAB="android/app/build/outputs/bundle/release/app-release.aab"
           test -s "$AAB"
           jarsigner -verify "$AAB"
-          cp "$AAB" /tmp/signal-deal-release-signed.aab
+          cp "$AAB" /tmp/zoneprospect360-release-signed.aab
           rm -f "$KEYSTORE"
 
       - name: Upload signed Play AAB
         if: env.HAS_ANDROID_SIGNING == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: signal-deal-android-release-aab-signed
-          path: /tmp/signal-deal-release-signed.aab
+          name: zoneprospect360-android-release-aab-signed
+          path: /tmp/zoneprospect360-release-signed.aab
           if-no-files-found: error
           retention-days: 14
