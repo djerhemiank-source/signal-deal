@@ -16,6 +16,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      HAS_ANDROID_SIGNING: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' && secrets.ANDROID_STORE_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,19 +46,21 @@ jobs:
           grep -q "MIXED_CONTENT_NEVER_ALLOW" android/app/src/main/java/fr/signaldeal/app/MainActivity.java
           grep -q "SignalDealAndroidPlay" android/app/src/main/java/fr/signaldeal/app/MainActivity.java
 
-      - name: Build debug APK and release AAB
+      - name: Build debug APK and unsigned release AAB
         working-directory: android
         run: gradle --no-daemon --stacktrace clean assembleDebug bundleRelease
 
       - name: Verify APK target SDK and package
         run: |
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
           test -s "$APK"
+          test -s "$AAB"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee /tmp/signal-deal-badging.txt
           grep -q "package: name='fr.signaldeal.app'" /tmp/signal-deal-badging.txt
           grep -q "targetSdkVersion:'36'" /tmp/signal-deal-badging.txt
           grep -q "sdkVersion:'26'" /tmp/signal-deal-badging.txt
-          test -s android/app/build/outputs/bundle/release/app-release.aab
+          cp "$AAB" /tmp/signal-deal-release-unsigned.aab
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -66,10 +70,40 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload release AAB
+      - name: Upload unsigned release AAB
         uses: actions/upload-artifact@v4
         with:
           name: signal-deal-android-release-aab-unsigned
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: /tmp/signal-deal-release-unsigned.aab
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Build signed Play upload AAB when secrets exist
+        if: env.HAS_ANDROID_SIGNING == 'true'
+        env:
+          ANDROID_UPLOAD_KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          KEYSTORE="$RUNNER_TEMP/signal-deal-upload.jks"
+          printf '%s' "$ANDROID_UPLOAD_KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          export ANDROID_KEYSTORE_PATH="$KEYSTORE"
+          cd android
+          gradle --no-daemon --stacktrace bundleRelease
+          cd ..
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          test -s "$AAB"
+          jarsigner -verify "$AAB"
+          cp "$AAB" /tmp/signal-deal-release-signed.aab
+          rm -f "$KEYSTORE"
+
+      - name: Upload signed Play AAB
+        if: env.HAS_ANDROID_SIGNING == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-deal-android-release-aab-signed
+          path: /tmp/signal-deal-release-signed.aab
           if-no-files-found: error
           retention-days: 14
