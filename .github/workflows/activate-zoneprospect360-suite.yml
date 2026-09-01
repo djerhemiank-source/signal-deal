@@ -17,52 +17,39 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Final product consistency
+      - name: Apply final user-facing corrections
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
-          p=Path('zoneprospect360-suite.js')
-          s=p.read_text(encoding='utf-8')
-          pattern=r"  async function loadCaps\(\)\{.*?\n  \}\n\n  function suitePanel"
-          replacement=(
-              "  async function loadCaps(){\n"
-              "    const c=appClient(); if(!c)return null;\n"
-              "    let p=plan();\n"
-              "    if(hasSession()){\n"
-              "      const {data:sub}=await c.from('subscriptions').select('plan,status,updated_at').eq('user_id',session.user.id).eq('livemode',true).in('status',['active','trialing']).order('updated_at',{ascending:false}).limit(1).maybeSingle();\n"
-              "      if(sub?.plan){p=String(sub.plan);try{currentPlan=p}catch{}}\n"
-              "    }\n"
-              "    const {data,error}=await c.from('plan_catalog').select('id,max_feed_rows,can_export,can_company_enrich,monthly_company_enrichments,can_import_contacts,can_saved_searches').eq('id',p).maybeSingle();\n"
-              "    if(!error&&data){ZP.caps=data;try{if(data.max_feed_rows)planMax=Number(data.max_feed_rows)}catch{}}\n"
-              "    return ZP.caps;\n"
-              "  }\n\n"
-              "  function suitePanel"
-          )
-          if "select('plan,status,updated_at')" not in s:
-              s,n=re.subn(pattern,replacement,s,count=1,flags=re.S)
-              if n!=1: raise SystemExit('loadCaps anchor not found')
-          p.write_text(s,encoding='utf-8')
-
+          # 1) Main mobile navigation: keep Mon compte directly reachable.
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          replacements={
-              '<li>✓ Scores et zones</li><li>✓ Pipeline personnel</li><li>– Sources détaillées avancées</li><li>– Matching prestataires avancé</li>':'<li>✓ Scores et zones</li><li>✓ Pipeline personnel</li><li>✓ 5 enrichissements entreprise publics / mois</li><li>– Import / export CSV</li><li>– Matching prestataires avancé</li>',
-              '<li>✓ Zone de chalandise jusqu’à 50 km</li><li>✓ Sources officielles et besoins</li><li>✓ Demandes travaux consenties disponibles</li><li>✓ Filtres et pipeline commercial</li>':'<li>✓ Zone de chalandise jusqu’à 10 km</li><li>✓ Sources officielles et besoins</li><li>✓ 25 enrichissements entreprise publics / mois</li><li>✓ Import CSV + recherches sauvegardées</li><li>✓ Demandes travaux consenties + pipeline</li>',
-              '<li>✓ Ciblage multi-catégories</li><li>✓ Matching prestataires</li><li>✓ Préparation de l’approche</li><li>✓ Calcul de commission</li><li>✓ Export CSV</li>':'<li>✓ Zone de chalandise jusqu’à 25 km</li><li>✓ 250 enrichissements entreprise publics / mois</li><li>✓ Import + export CSV et recherches sauvegardées</li><li>✓ Matching prestataires + préparation de l’approche</li><li>✓ Calcul de commission</li>',
-              '<li>✓ Ciblage métier et zone étendu</li><li>✓ Sources, besoins et signaux</li><li>✓ Pipeline, calcul et export CSV</li>':'<li>✓ Zone de chalandise jusqu’à 50 km</li><li>✓ 1 000 enrichissements entreprise publics / mois</li><li>✓ Sources, besoins, signaux et recherches sauvegardées</li><li>✓ Pipeline, matching, import / export CSV</li>'
-          }
-          for old,new in replacements.items():
-              s=s.replace(old,new,1)
-          s=s.replace('signal-deal-opportunites.csv','zoneprospect360-opportunites.csv')
-          if '✓ Enrichissement entreprises' not in s:
-              s=s.replace('<span>✓ Prospects B2B publics</span>','<span>✓ Prospects B2B publics</span><span>✓ Enrichissement entreprises</span>',1)
+          marker='<span id="userMini" class="status hide-sm">Non connecté</span>'
+          account='<span id="userMini" class="status hide-sm">Non connecté</span><a class="btn account-link" href="./compte.html">👤 Mon compte</a>'
+          if 'class="btn account-link"' not in s:
+              if marker not in s: raise SystemExit('main nav anchor not found')
+              s=s.replace(marker,account,1)
+          if '.account-link{white-space:nowrap}' not in s:
+              s=s.replace('.nav{display:flex;gap:8px;align-items:center}', '.nav{display:flex;gap:8px;align-items:center}.account-link{white-space:nowrap}',1)
+          s=s.replace('@media(max-width:650px){.wrap{padding:0 14px}', '@media(max-width:650px){.wrap{padding:0 14px}.account-link{padding:9px 10px;font-size:11px}',1)
           p.write_text(s,encoding='utf-8')
 
-          p=Path('android/app/src/main/java/fr/signaldeal/app/MainActivity.java')
-          s=p.read_text(encoding='utf-8').replace('signal-deal-opportunites.csv','zoneprospect360-opportunites.csv')
+          # 4) Any canceled-at-period-end subscription is treated as free immediately in the client.
+          for p in [Path('index.html'),Path('prospects.html'),Path('compte.html'),Path('zoneprospect360-suite.js')]:
+              if not p.exists(): continue
+              s=p.read_text(encoding='utf-8')
+              s=s.replace(".in('status',['active','trialing']).order", ".in('status',['active','trialing']).eq('cancel_at_period_end',false).order")
+              s=s.replace('.in("status",["active","trialing"]).order', '.in("status",["active","trialing"]).eq("cancel_at_period_end",false).order')
+              s=s.replace("select('plan,status,updated_at')", "select('plan,status,cancel_at_period_end,updated_at')")
+              p.write_text(s,encoding='utf-8')
+
+          # 5) Privacy copy matches the actual paid-subscription access rule.
+          p=Path('privacy.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('à un professionnel authentifié que lorsque', 'à un professionnel disposant d’un abonnement actif que lorsque')
+          s=s.replace('Un professionnel connecté peut recevoir les coordonnées', 'Un professionnel disposant d’un abonnement actif peut recevoir les coordonnées')
           p.write_text(s,encoding='utf-8')
           PY
 
@@ -71,20 +58,13 @@ jobs:
         run: |
           node --check zoneprospect360-suite.js
           node --test tests/lite-core.test.js
-          grep -q 'zoneprospect360-suite.js' prospects.html
-          grep -q "select('plan,status,updated_at')" zoneprospect360-suite.js
-          grep -q 'ZoneProspect 360' prospects.html
-          grep -q '25 enrichissements entreprise publics / mois' index.html
-          grep -q 'Zone de chalandise jusqu’à 10 km' index.html
-          grep -q 'zoneprospect360-opportunites.csv' index.html
+          grep -q '👤 Mon compte' index.html
+          grep -q 'account-link' index.html
+          grep -q "cancel_at_period_end',false" zoneprospect360-suite.js
+          grep -q 'professionnel disposant d’un abonnement actif' privacy.html
           grep -q 'android:label="ZoneProspect 360"' android/app/src/main/AndroidManifest.xml
-          grep -q 'zoneprospect360-opportunites.csv' android/app/src/main/java/fr/signaldeal/app/MainActivity.java
-          if grep -RIn --exclude-dir=.git --exclude-dir=.github --exclude-dir=issoire-connect -E 'Signal Deal|SIGNAL DEAL' .; then
-            echo 'Legacy visible brand remains'
-            exit 1
-          fi
 
-      - name: Commit final corrections
+      - name: Commit corrections
         shell: bash
         run: |
           if git diff --quiet; then
@@ -93,6 +73,6 @@ jobs:
           fi
           git config user.name 'ZoneProspect 360 Suite'
           git config user.email 'actions@users.noreply.github.com'
-          git add zoneprospect360-suite.js index.html android/app/src/main/java/fr/signaldeal/app/MainActivity.java
-          git commit -m 'fix: finalize ZoneProspect 360 product consistency'
+          git add index.html prospects.html compte.html privacy.html zoneprospect360-suite.js
+          git commit -m 'fix: account navigation privacy and canceled subscription state'
           git push origin HEAD:main
