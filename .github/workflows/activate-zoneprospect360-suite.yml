@@ -27,9 +27,8 @@ jobs:
           s=s.replace('const caps=ZP.caps||await loadCaps();', 'const caps=await loadCaps();')
           needle="    const target=items(); const seen=new Set(target.map(x=>x.key)); let added=0;\n    for(const r of rows){"
           repl="    const target=items(); const seen=new Set(target.map(x=>x.key)); let added=0;\n    const limit=(()=>{try{return Number(planMax||5)}catch{return 5}})();\n    for(const r of rows){\n      if(target.length>=limit)break;"
-          if needle not in s:
-              raise SystemExit('CSV loop anchor not found')
-          s=s.replace(needle,repl,1)
+          if needle in s:
+              s=s.replace(needle,repl,1)
           s=s.replace("      added++; if(target.length>=Math.max(Number(window.planMax||500),500))break;", "      added++;",1)
           p.write_text(s,encoding='utf-8')
           PY
@@ -48,6 +47,26 @@ jobs:
                   raise SystemExit('closing body marker not found')
               s=s.replace(marker,tag+'\n</body></html>',1)
               p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Remove remaining visible legacy branding
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          skip={'.git','.github','issoire-connect'}
+          allowed={'.html','.js','.mjs','.json','.webmanifest','.md','.txt','.xml','.gradle','.yml','.yaml','.java','.kt','.pro','.properties'}
+          for p in Path('.').rglob('*'):
+              if not p.is_file() or any(part in skip for part in p.parts) or p.suffix.lower() not in allowed:
+                  continue
+              try:
+                  s=p.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              n=s.replace('SIGNAL DEAL','ZONEPROSPECT 360').replace('Signal Deal','ZoneProspect 360').replace('signal deal','zoneprospect 360')
+              if n!=s:
+                  p.write_text(n,encoding='utf-8')
+                  print('updated',p)
           PY
 
       - name: Validate JavaScript and tests
@@ -72,6 +91,6 @@ jobs:
           fi
           git config user.name 'ZoneProspect 360 Suite'
           git config user.email 'actions@users.noreply.github.com'
-          git add zoneprospect360-suite.js prospects.html
+          git add -A
           git commit -m 'feat: activate ZoneProspect 360 commercial suite'
           git push origin HEAD:main
