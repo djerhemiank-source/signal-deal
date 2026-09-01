@@ -25,39 +25,28 @@ async function publishAd(page,label,expectText){await clickTile(page,'Pub locale
 const browser=await chromium.launch({headless:true});
 for(const a of accounts){
  const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
- const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ const page=await context.newPage();const errors=[];const authResponses=[];
+ page.on('pageerror',e=>errors.push(String(e)));
+ page.on('response',async res=>{if(!res.url().includes('/auth/v1/token'))return;try{const j=await res.json();authResponses.push({status:res.status(),hasAccessToken:!!j.access_token,error:j.error||null,error_description:j.error_description||null,msg:j.msg||j.message||null,error_code:j.error_code||j.code||null})}catch{authResponses.push({status:res.status(),parse:false})}});
  let r=await page.goto(APP+'?e2e='+Date.now(),{waitUntil:'domcontentloaded',timeout:25000});assert(r?.ok(),'app HTTP');
  await page.locator('[data-page="account"]').waitFor({state:'visible',timeout:20000});await page.locator('[data-page="account"]').click();
  const login=page.locator('button',{hasText:'Connexion / inscription'});await login.waitFor({state:'visible',timeout:10000});await login.click();
  await page.locator('#authEmail').fill(a.email);await page.locator('#authPass').fill(PASS);await page.locator('#authGo').click();
- await page.waitForFunction(name=>(document.querySelector('main')?.innerText||'').includes(name),a.business,{timeout:20000});
+ try{await page.waitForFunction(name=>(document.querySelector('main')?.innerText||'').includes(name),a.business,{timeout:20000})}catch(err){const diag=await page.evaluate(()=>({toast:document.querySelector('#toast')?.textContent||'',main:(document.querySelector('main')?.innerText||'').slice(0,1200),modal:(document.querySelector('#modalBody')?.innerText||'').slice(0,800),session:!!globalThis.S?.session,uid:globalThis.S?.session?.user?.id||null,role:globalThis.S?.profile?.role||null,myBusinesses:(globalThis.S?.myBusinesses||[]).map(x=>({id:x.id,name:x.name,plan:x.plan}))}));console.log('AUTH_DIAG',a.plan,JSON.stringify({authResponses,diag}));throw err}
  await page.waitForFunction(()=>document.querySelector('#icPlanPanel'),null,{timeout:8000});
  const body=await page.locator('main').innerText();assert.match(body,new RegExp(a.plan.replace('+','\\+')));assert(body.includes(a.price),`${a.plan} price missing`);
  const maxBtn=page.locator('.radiuschoices button',{hasText:`${a.max} km`}).first();await maxBtn.waitFor({state:'visible',timeout:8000});assert(!(await maxBtn.getAttribute('class')||'').includes('locked'),`${a.plan} max radius locked`);
  if(a.next){const locked=page.locator('.radiuschoices button',{hasText:`${a.next} km`}).first();assert((await locked.getAttribute('class')||'').includes('locked'),`${a.plan} next radius should be locked`);await locked.click();assert.match(await page.locator('#modalBody').innerText(),/Étendre votre zone|forfait/i);await closeModal(page)}
-
- await publishProduct(page,a.plan);
- await publishOffer(page,a.plan,'Promotion');
-
+ await publishProduct(page,a.plan);await publishOffer(page,a.plan,'Promotion');
  if(a.plan==='Essential'){
    await publishOffer(page,a.plan,'Invendu');
    await clickTile(page,'Promotion');assert.match(await page.locator('#modalBody').innerText(),/Limite de 2 offres ou invendus/i);await closeModal(page);
    await clickTile(page,'Emploi');assert.match(await page.locator('#modalBody').innerText(),/nécessite|forfait|Pro — 9,99 €/i);await closeModal(page);
    await clickTile(page,'Événement');assert.match(await page.locator('#modalBody').innerText(),/Pro — 9,99 €/i);await closeModal(page);
    await clickTile(page,'Pub locale');assert.match(await page.locator('#modalBody').innerText(),/Pro — 9,99 €/i);await closeModal(page);
- }else{
-   await publishJob(page,a.plan);await publishEvent(page,a.plan);
-   await publishAd(page,a.plan,a.plan==='Pro'?/campagne sponsorisée standard/i:/campagne sponsorisée incluse/i);
- }
-
- // Checkout buttons must carry the authenticated Supabase user id without charging: Stripe is still test mode.
+ }else{await publishJob(page,a.plan);await publishEvent(page,a.plan);await publishAd(page,a.plan,a.plan==='Pro'?/campagne sponsorisée standard/i:/campagne sponsorisée incluse/i)}
  await page.evaluate(()=>openIcPlans());await page.locator('.modalback').waitFor({state:'visible',timeout:5000});
- const target=a.plan==='Essential'?'Pro':'Essential';
- const popupPromise=page.waitForEvent('popup',{timeout:8000});await page.locator('#modalBody button',{hasText:`Choisir ${target}`}).click();const popup=await popupPromise;await popup.waitForLoadState('domcontentloaded',{timeout:15000}).catch(()=>{});const pu=popup.url();assert.match(pu,/buy\.stripe\.com\/test_/);assert.match(pu,/client_reference_id=/);await popup.close();await closeModal(page);
-
- assert.equal(errors.length,0,errors.join(' | '));
- console.log('PLAN PASS',a.plan);
- await context.close();
+ const target=a.plan==='Essential'?'Pro':'Essential';const popupPromise=page.waitForEvent('popup',{timeout:8000});await page.locator('#modalBody button',{hasText:`Choisir ${target}`}).click();const popup=await popupPromise;await popup.waitForLoadState('domcontentloaded',{timeout:15000}).catch(()=>{});const pu=popup.url();assert.match(pu,/buy\.stripe\.com\/test_/);assert.match(pu,/client_reference_id=/);await popup.close();await closeModal(page);
+ assert.equal(errors.length,0,errors.join(' | '));console.log('PLAN PASS',a.plan);await context.close();
 }
-await browser.close();
-console.log('ISSOIRE CONNECT CONNECTED PLAN E2E PASS');
+await browser.close();console.log('ISSOIRE CONNECT CONNECTED PLAN E2E PASS');
