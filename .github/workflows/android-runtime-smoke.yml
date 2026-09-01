@@ -141,6 +141,9 @@ jobs:
           grep -q 'PAGE_FINISHED https://djerhemiank-source.github.io/signal-deal/' /tmp/signal-deal-app.log
           ! grep -E 'MAIN_FRAME_ERROR|SSL_ERROR' /tmp/signal-deal-app.log
 
+          # Give WebView a short paint window after onPageFinished.
+          sleep 4
+
           PID=$("$ADB" shell pidof -s fr.signaldeal.app | tr -d '\r')
           test -n "$PID"
           "$ADB" shell dumpsys activity activities > /tmp/signal-deal-activity.txt
@@ -152,21 +155,25 @@ jobs:
         if: always()
         shell: bash
         run: |
+          set -u
           ADB="$ANDROID_HOME/platform-tools/adb"
           cp /tmp/activity-start.txt /tmp/signal-deal-activity-start.txt 2>/dev/null || true
           if timeout 5s "$ADB" get-state 2>/dev/null | grep -q '^device$'; then
-            # Capture 1: real Android home screen
+            # Force a tiny touch/repaint before the first capture.
+            timeout 5s "$ADB" shell input swipe 150 320 150 319 120 || true
+            sleep 2
+
+            # Capture 1: real Android home screen.
             timeout 10s "$ADB" exec-out screencap -p > /tmp/signal-deal-android.png || true
             timeout 10s "$ADB" shell uiautomator dump /sdcard/signal-deal-ui.xml || true
             timeout 10s "$ADB" pull /sdcard/signal-deal-ui.xml /tmp/signal-deal-ui.xml || true
 
-            # Capture 2: open the real sign-in section and capture it.
-            # The smoke emulator is fixed at 304x640; the top-right Sign in CTA is around x=255,y=50.
-            timeout 5s "$ADB" shell input tap 255 50 || true
-            sleep 2
-            timeout 10s "$ADB" exec-out screencap -p > /tmp/signal-deal-android-login.png || true
-            timeout 10s "$ADB" shell uiautomator dump /sdcard/signal-deal-login-ui.xml || true
-            timeout 10s "$ADB" pull /sdcard/signal-deal-login-ui.xml /tmp/signal-deal-login-ui.xml || true
+            # Capture 2: real in-app pricing/content after a vertical swipe.
+            timeout 5s "$ADB" shell input swipe 150 550 150 120 800 || true
+            sleep 3
+            timeout 10s "$ADB" exec-out screencap -p > /tmp/signal-deal-android-second.png || true
+            timeout 10s "$ADB" shell uiautomator dump /sdcard/signal-deal-second-ui.xml || true
+            timeout 10s "$ADB" pull /sdcard/signal-deal-second-ui.xml /tmp/signal-deal-second-ui.xml || true
 
             timeout 10s "$ADB" shell dumpsys activity activities > /tmp/signal-deal-activity.txt || true
             timeout 10s "$ADB" logcat -d -s SignalDeal:I '*:S' > /tmp/signal-deal-app.log || true
@@ -175,6 +182,18 @@ jobs:
             echo "No adb device available during evidence capture" > /tmp/signal-deal-no-device.txt
           fi
 
+      - name: Validate final rendered state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s /tmp/signal-deal-android.png
+          test -s /tmp/signal-deal-android-second.png
+          test -s /tmp/signal-deal-ui.xml
+          test -s /tmp/signal-deal-second-ui.xml
+          grep -q 'Signal Deal' /tmp/signal-deal-ui.xml
+          grep -q 'Signal Deal' /tmp/signal-deal-second-ui.xml
+          ! grep -E 'MAIN_FRAME_ERROR|SSL_ERROR|ERR_INTERNET_DISCONNECTED' /tmp/signal-deal-app.log
+
       - name: Upload runtime evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -182,9 +201,9 @@ jobs:
           name: signal-deal-android-runtime-evidence
           path: |
             /tmp/signal-deal-android.png
-            /tmp/signal-deal-android-login.png
+            /tmp/signal-deal-android-second.png
             /tmp/signal-deal-ui.xml
-            /tmp/signal-deal-login-ui.xml
+            /tmp/signal-deal-second-ui.xml
             /tmp/signal-deal-app.log
             /tmp/signal-deal-process.log
             /tmp/signal-deal-activity.txt
