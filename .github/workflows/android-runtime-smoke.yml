@@ -119,6 +119,31 @@ jobs:
             cat /tmp/signal-deal-emulator.log || true
             exit 1
           fi
+
+          # sys.boot_completed can become true before Android has validated its
+          # network. Wait for a real validated network before opening WebView so
+          # the smoke test does not race emulator Wi-Fi/DNS initialization.
+          NETWORK_READY=0
+          for i in {1..60}; do
+            CONNECTIVITY=$(timeout 5s "$ADB" shell dumpsys connectivity 2>/dev/null || true)
+            if printf '%s\n' "$CONNECTIVITY" | grep -q 'VALIDATED'; then
+              NETWORK_READY=1
+              break
+            fi
+            if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+              echo "Emulator process exited while waiting for validated network"
+              cat /tmp/signal-deal-emulator.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+          if [ "$NETWORK_READY" != "1" ]; then
+            echo "Android network was not validated within 120 seconds"
+            timeout 10s "$ADB" shell dumpsys connectivity || true
+            exit 1
+          fi
+
+          sleep 2
           timeout 5s "$ADB" shell input keyevent 82 || true
 
       - name: Install and launch Signal Deal
