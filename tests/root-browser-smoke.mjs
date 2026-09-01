@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 const BASE=process.env.SMOKE_BASE_URL||'http://127.0.0.1:4173/';
 const PORTAL_URL='https://eazukvtjxeirbitukueb.supabase.co/functions/v1/signal-deal-billing-manager';
+const DELETE_URL='https://eazukvtjxeirbitukueb.supabase.co/functions/v1/signal-deal-delete-account';
 const SUPABASE_KEY='sb_publishable_OIOSgs39cGT6s34eVuexIA_5bZGmZVj';
 
 async function checkBillingPortalSecurity(){
@@ -12,6 +13,27 @@ async function checkBillingPortalSecurity(){
     body:'{}'
   });
   assert.equal(response.status,401,'billing portal: une requête sans session doit être refusée');
+}
+
+async function checkDeletionAndCompliance(){
+  const response=await fetch(DELETE_URL,{
+    method:'POST',
+    headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({confirm:'DELETE_SIGNAL_DEAL_ACCOUNT'})
+  });
+  assert.equal(response.status,401,'suppression compte: une requête sans session doit être refusée');
+
+  const privacy=await fetch(new URL('privacy.html',BASE));
+  assert(privacy.ok,'politique de confidentialité inaccessible');
+  const privacyText=await privacy.text();
+  assert.match(privacyText,/Politique de confidentialité — Signal Deal/i);
+  assert.match(privacyText,/Supprimer mon compte Signal Deal/i);
+
+  const deletion=await fetch(new URL('delete-account.html',BASE));
+  assert(deletion.ok,'page suppression de compte inaccessible');
+  const deletionText=await deletion.text();
+  assert.match(deletionText,/signal-deal-delete-account/);
+  assert.match(deletionText,/Supprimer mon compte Signal Deal/i);
 }
 
 async function run(name,viewport){
@@ -50,6 +72,7 @@ async function run(name,viewport){
   assert.equal(diagnostics.manageButton,true,name+': bouton de gestion abonnement absent');
   assert.equal(diagnostics.manageFunction,true,name+': action de gestion abonnement absente');
   assert.equal(diagnostics.stripeSecretExposed,false,name+': clé Stripe secrète exposée dans le navigateur');
+  assert.equal(await page.evaluate(()=>/account_deletion_requests/.test(enterApp.toString())&&/completed/.test(enterApp.toString())),true,name+': verrou de compte supprimé absent');
   assert((await page.locator('a[href="./privacy.html"]').count())>0,name+': Privacy policy link missing');
   assert((await page.locator('a[href="./delete-account.html"]').count())>0,name+': Account deletion link missing');
 
@@ -112,6 +135,7 @@ async function run(name,viewport){
 }
 
 await checkBillingPortalSecurity();
+await checkDeletionAndCompliance();
 const desktop=await run('desktop',{width:1440,height:900});
 const mobile=await run('mobile',{width:390,height:844});
 console.log('ROOT SMOKE PASS',JSON.stringify({desktop,mobile,billingPortalUnauthenticated:'blocked'}));
