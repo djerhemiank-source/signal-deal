@@ -2,6 +2,12 @@ plugins {
     id 'com.android.application'
 }
 
+def uploadKeystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+def uploadKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
+def uploadKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+def uploadStorePassword = System.getenv('ANDROID_STORE_PASSWORD')
+def uploadSigningReady = uploadKeystorePath && uploadKeyAlias && uploadKeyPassword && uploadStorePassword
+
 android {
     namespace 'fr.signaldeal.app'
     compileSdk 36
@@ -14,6 +20,17 @@ android {
         versionName '1.0.0'
     }
 
+    signingConfigs {
+        if (uploadSigningReady) {
+            release {
+                storeFile file(uploadKeystorePath)
+                storePassword uploadStorePassword
+                keyAlias uploadKeyAlias
+                keyPassword uploadKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             debuggable true
@@ -21,6 +38,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (uploadSigningReady) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
