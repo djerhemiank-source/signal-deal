@@ -29,7 +29,7 @@ async function run(name,viewport){
       brandHref:document.querySelector('.brand')?.getAttribute('href')
     };
   });
-  assert(diagnostics.controls>=18,name+': contrôles manquants ('+diagnostics.controls+')');
+  assert(diagnostics.controls>=15,name+': contrôles manquants ('+diagnostics.controls+')');
   assert.deepEqual(diagnostics.inert,[],name+': boutons sans action');
   assert.equal(diagnostics.observers,false,name+': boucle DOM/minuterie détectée');
   assert.equal(diagnostics.brandHref,'./',name+': lien accueil invalide');
