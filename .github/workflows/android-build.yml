@@ -41,34 +41,38 @@ jobs:
       - name: Validate Android project configuration
         run: |
           grep -q "compileSdk 36" android/app/build.gradle
+          grep -q "minSdk 23" android/app/build.gradle
           grep -q "targetSdk 36" android/app/build.gradle
+          grep -q "versionCode 2" android/app/build.gradle
+          grep -q "versionName '1.0.1-universal'" android/app/build.gradle
           grep -q "applicationId 'fr.signaldeal.app'" android/app/build.gradle
           grep -q "applicationIdSuffix '.zoneprospect360'" android/app/build.gradle
           grep -q "android:label=\"ZoneProspect 360\"" android/app/src/main/AndroidManifest.xml
+          grep -q "android:icon=\"@drawable/ic_launcher_foreground\"" android/app/src/main/AndroidManifest.xml
           grep -q "usesCleartextTraffic=\"false\"" android/app/src/main/AndroidManifest.xml
           grep -q "MIXED_CONTENT_NEVER_ALLOW" android/app/src/main/java/fr/signaldeal/app/MainActivity.java
 
-      - name: Build test APK and unsigned release AAB
+      - name: Build universal test APK and unsigned release AAB
         working-directory: android
         run: gradle --no-daemon --stacktrace clean assembleDebug bundleRelease
 
-      - name: Verify APK label SDK and package
+      - name: Verify APK label SDK package and version
         run: |
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           AAB="android/app/build/outputs/bundle/release/app-release.aab"
           test -s "$APK"
           test -s "$AAB"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee /tmp/zoneprospect360-badging.txt
-          grep -q "package: name='fr.signaldeal.app.zoneprospect360'" /tmp/zoneprospect360-badging.txt
+          grep -q "package: name='fr.signaldeal.app.zoneprospect360' versionCode='2' versionName='1.0.1-universal-test'" /tmp/zoneprospect360-badging.txt
           grep -q "application-label:'ZoneProspect 360'" /tmp/zoneprospect360-badging.txt
           grep -q "targetSdkVersion:'36'" /tmp/zoneprospect360-badging.txt
-          grep -q "sdkVersion:'26'" /tmp/zoneprospect360-badging.txt
+          grep -q "sdkVersion:'23'" /tmp/zoneprospect360-badging.txt
           cp "$AAB" /tmp/zoneprospect360-release-unsigned.aab
 
-      - name: Upload directly installable test APK
+      - name: Upload directly installable universal APK
         uses: actions/upload-artifact@v4
         with:
-          name: zoneprospect360-android-test-apk
+          name: zoneprospect360-android-universal-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
