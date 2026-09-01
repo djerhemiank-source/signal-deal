@@ -15,7 +15,7 @@ async function run(viewport){
  await page.locator('[data-page="search"]').waitFor({state:'visible',timeout:15000});
  await page.locator('.communitystats').waitFor({state:'visible',timeout:20000});
  assert.match(await page.locator('main').innerText(),/Tout Issoire/i,'home did not finish loading');
- await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openClassifiedContact==='function',null,{timeout:20000});
+ await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openClassifiedContact==='function'&&typeof window.openReportContent==='function'&&typeof window.openReportsAdmin==='function',null,{timeout:20000});
 
  await page.locator('[data-page="search"]').click();
  await page.locator('#globalQ').waitFor({state:'visible',timeout:5000});
@@ -45,10 +45,11 @@ async function run(viewport){
  await page.evaluate(()=>go('classifieds'));
  await page.locator('#caQ').waitFor({state:'visible',timeout:20000});
  assert.match(await page.locator('main').innerText(),/Petites annonces locales/i,'public classifieds did not render');
+ await page.locator('[data-report-classified]').first().waitFor({state:'visible',timeout:10000});
+ assert(await page.locator('button',{hasText:'Déposer'}).first().isVisible(),'classified deposit action missing');
  await page.locator('#caQ').fill('vélo');
  await page.locator('button',{hasText:'Filtrer'}).click();
  await page.locator('#caQ').waitFor({state:'visible',timeout:10000});
- assert(await page.locator('button',{hasText:'Déposer'}).first().isVisible(),'classified deposit action missing');
 
  await page.locator('header button[title="Démonstration commerciale"]').click();
  await page.locator('.modalback').waitFor({state:'visible',timeout:5000});
@@ -60,4 +61,4 @@ async function run(viewport){
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT V20 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
+console.log('ISSOIRE CONNECT V21 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
