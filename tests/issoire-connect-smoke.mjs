@@ -10,12 +10,28 @@ async function run(viewport){
  page.on('request',r=>{if(/supabase\.co/i.test(r.url()))supabase++});
  let r=await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:20000});assert(r?.ok(),'landing HTTP');
  assert.match(await page.title(),/Issoire Connect/);
+ const landing=await page.locator('body').innerText();
+ assert.match(landing,/4,99 €/,'Essential price missing on landing');
+ assert.match(landing,/9,99 €/,'Pro price missing on landing');
+ assert.match(landing,/19,99 €/,'Pro+ price missing on landing');
+ assert.match(landing,/MODE TEST Stripe/i,'Stripe test mode warning missing');
+
  const appUrl=new URL('app/index.html?ci='+Date.now(),BASE).href;
  r=await page.goto(appUrl,{waitUntil:'domcontentloaded',timeout:20000});assert(r?.ok(),'app HTTP');
  await page.locator('[data-page="search"]').waitFor({state:'visible',timeout:15000});
  await page.locator('.communitystats').waitFor({state:'visible',timeout:20000});
  assert.match(await page.locator('main').innerText(),/Tout Issoire/i,'home did not finish loading');
- await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openClassifiedContact==='function'&&typeof window.openReportContent==='function'&&typeof window.openReportsAdmin==='function',null,{timeout:20000});
+ await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openClassifiedContact==='function'&&typeof window.openReportContent==='function'&&typeof window.openReportsAdmin==='function'&&typeof window.openIcPlans==='function'&&typeof window.startIcPlanCheckout==='function',null,{timeout:20000});
+
+ await page.evaluate(()=>openIcPlans());
+ await page.locator('.modalback').waitFor({state:'visible',timeout:5000});
+ const planText=await page.locator('#modalBody').innerText();
+ assert.match(planText,/Essential/);
+ assert.match(planText,/20 produits\/services actifs/);
+ assert.match(planText,/2 offres ou invendus par mois/);
+ assert.match(planText,/Pro\+/);
+ assert.match(planText,/50 km/);
+ await page.locator('.modalback').click();
 
  await page.locator('[data-page="search"]').click();
  await page.locator('#globalQ').waitFor({state:'visible',timeout:5000});
@@ -61,4 +77,4 @@ async function run(viewport){
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT V21 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
+console.log('ISSOIRE CONNECT V22 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
