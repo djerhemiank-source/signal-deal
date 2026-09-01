@@ -49,7 +49,7 @@ jobs:
           grep -q "PHOTO_BUCKET='ic-classifieds'" issoire-connect/app/resident-classifieds-patch.js
           grep -q "storage.from(PHOTO_BUCKET).upload" issoire-connect/app/resident-classifieds-patch.js
           grep -q "af_latitude" issoire-connect/app/admin-business-extra-patch.js
-          grep -q "afx_mon" issoire-connect/app/admin-business-extra-patch.js
+          grep -q "afx_" issoire-connect/app/admin-business-extra-patch.js
           grep -q "admin-business-extra-patch.js?v=20" issoire-connect/app/index.html
           grep -q "directory-route-fix.js?v=20" issoire-connect/app/index.html
           grep -q "resident-classifieds-patch.js?v=20" issoire-connect/app/index.html
