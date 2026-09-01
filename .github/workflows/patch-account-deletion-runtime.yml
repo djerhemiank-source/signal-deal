@@ -1,0 +1,39 @@
+name: Patch account deletion runtime
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/patch-account-deletion-runtime.py
+      - .github/workflows/patch-account-deletion-runtime.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply runtime patch
+        run: python3 scripts/patch-account-deletion-runtime.py
+
+      - name: Validate runtime patch
+        run: |
+          grep -q 'account_deletion_requests' index.html
+          grep -q 'checkDeletionAndCompliance' tests/root-browser-smoke.mjs
+          grep -q 'signal-deal-delete-account' tests/root-browser-smoke.mjs
+
+      - name: Commit patch and remove temporary files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/patch-account-deletion-runtime.yml scripts/patch-account-deletion-runtime.py
+          git add index.html tests/root-browser-smoke.mjs
+          git commit -m 'Bloquer les comptes Signal Deal supprimés'
+          git push origin HEAD:main
