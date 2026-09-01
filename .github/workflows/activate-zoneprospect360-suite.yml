@@ -1,0 +1,77 @@
+name: Activate ZoneProspect 360 Suite
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/activate-zoneprospect360-suite.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fix capability refresh and quota handling
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('zoneprospect360-suite.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('const caps=ZP.caps||await loadCaps();', 'const caps=await loadCaps();')
+          needle="    const target=items(); const seen=new Set(target.map(x=>x.key)); let added=0;\n    for(const r of rows){"
+          repl="    const target=items(); const seen=new Set(target.map(x=>x.key)); let added=0;\n    const limit=(()=>{try{return Number(planMax||5)}catch{return 5}})();\n    for(const r of rows){\n      if(target.length>=limit)break;"
+          if needle not in s:
+              raise SystemExit('CSV loop anchor not found')
+          s=s.replace(needle,repl,1)
+          s=s.replace("      added++; if(target.length>=Math.max(Number(window.planMax||500),500))break;", "      added++;",1)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Activate suite on prospects page
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('prospects.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="./zoneprospect360-suite.js"></script>'
+          if tag not in s:
+              marker='</body></html>'
+              if marker not in s:
+                  raise SystemExit('closing body marker not found')
+              s=s.replace(marker,tag+'\n</body></html>',1)
+              p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate JavaScript and tests
+        shell: bash
+        run: |
+          node --check zoneprospect360-suite.js
+          node --test tests/lite-core.test.js
+          grep -q 'zoneprospect360-suite.js' prospects.html
+          grep -q 'ZoneProspect 360' prospects.html
+          grep -q 'android:label="ZoneProspect 360"' android/app/src/main/AndroidManifest.xml
+          if grep -RIn --exclude-dir=.git --exclude-dir=.github --exclude-dir=issoire-connect -E 'Signal Deal|SIGNAL DEAL' .; then
+            echo 'Legacy visible brand remains'
+            exit 1
+          fi
+
+      - name: Commit activation
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git config user.name 'ZoneProspect 360 Suite'
+          git config user.email 'actions@users.noreply.github.com'
+          git add zoneprospect360-suite.js prospects.html
+          git commit -m 'feat: activate ZoneProspect 360 commercial suite'
+          git push origin HEAD:main
