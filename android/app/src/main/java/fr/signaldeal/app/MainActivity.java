@@ -242,7 +242,7 @@ public class MainActivity extends Activity {
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("text/csv");
                 intent.putExtra(Intent.EXTRA_TITLE,
-                    (filename == null || filename.trim().isEmpty()) ? "signal-deal-opportunites.csv" : filename);
+                    (filename == null || filename.trim().isEmpty()) ? "zoneprospect360-opportunites.csv" : filename);
                 try {
                     startActivityForResult(intent, CREATE_CSV_REQUEST);
                 } catch (ActivityNotFoundException e) {
