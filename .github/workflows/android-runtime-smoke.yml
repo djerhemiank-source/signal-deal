@@ -39,6 +39,7 @@ jobs:
             "platform-tools" \
             "emulator" \
             "system-images;android-36;google_apis;x86_64"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
             -n signal_deal_api36 \
             -k "system-images;android-36;google_apis;x86_64" \
@@ -54,7 +55,7 @@ jobs:
           nohup "$ANDROID_HOME/emulator/emulator" \
             -avd signal_deal_api36 \
             -no-window -no-audio -no-boot-anim \
-            -gpu swiftshader_indirect \
+            -gpu swiftshader \
             -no-snapshot -wipe-data \
             > /tmp/signal-deal-emulator.log 2>&1 &
           adb wait-for-device
