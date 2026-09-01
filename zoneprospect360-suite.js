@@ -31,7 +31,7 @@
     const c=appClient(); if(!c)return null;
     let p=plan();
     if(hasSession()){
-      const {data:sub}=await c.from('subscriptions').select('plan,status,updated_at').eq('user_id',session.user.id).eq('livemode',true).in('status',['active','trialing']).order('updated_at',{ascending:false}).limit(1).maybeSingle();
+      const {data:sub}=await c.from('subscriptions').select('plan,status,cancel_at_period_end,updated_at').eq('user_id',session.user.id).eq('livemode',true).in('status',['active','trialing']).eq('cancel_at_period_end',false).order('updated_at',{ascending:false}).limit(1).maybeSingle();
       if(sub?.plan){p=String(sub.plan);try{currentPlan=p}catch{}}
     }
     const {data,error}=await c.from('plan_catalog').select('id,max_feed_rows,can_export,can_company_enrich,monthly_company_enrichments,can_import_contacts,can_saved_searches').eq('id',p).maybeSingle();
