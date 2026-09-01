@@ -1,0 +1,36 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+const BASE=process.env.IC_BASE||'http://127.0.0.1:4173/issoire-connect/';
+const browser=await chromium.launch({headless:true});
+const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+const page=await context.newPage();
+await page.goto(new URL('app/index.html?authaudit='+Date.now(),BASE).href,{waitUntil:'domcontentloaded',timeout:20000});
+await page.locator('[data-page]').first().waitFor({state:'visible',timeout:20000});
+await page.waitForTimeout(1200);
+const globals=await page.evaluate(()=>({authModal:typeof window.authModal,login:typeof window.icAuthLogin,signup:typeof window.icAuthSignup,forgot:typeof window.icAuthForgot,update:typeof window.icAuthUpdatePassword}));
+for(const [k,v] of Object.entries(globals))assert.equal(v,'function',`auth global ${k} missing`);
+await page.evaluate(()=>window.authModal('signup'));
+await page.locator('#icAuthEmail').fill('test@example.invalid');
+await page.locator('#icAuthName').fill('Test Issoire');
+assert.equal(await page.locator('#icAuthPassword').getAttribute('minlength'),'10');
+assert.match(await page.locator('.modalback:visible,.modal:visible').last().innerText(),/10 caractères minimum/i);
+const signupCapture=await page.evaluate(async()=>{
+ const old=sb.auth.signUp;let args=null;sb.auth.signUp=async a=>(args=a,{data:{session:null},error:null});
+ document.querySelector('#icAuthPassword').value='Abcdefghi1';
+ await window.icAuthSignup();sb.auth.signUp=old;return args;
+});
+assert.equal(signupCapture.email,'test@example.invalid');
+assert.match(signupCapture.options.emailRedirectTo,/\/issoire-connect\/app\/$/);
+assert.equal(signupCapture.options.data.full_name,'Test Issoire');
+await page.evaluate(()=>window.authModal('forgot'));
+await page.locator('#icAuthEmail').fill('test@example.invalid');
+const forgotCapture=await page.evaluate(async()=>{
+ const old=sb.auth.resetPasswordForEmail;let args=null;sb.auth.resetPasswordForEmail=async(email,opts)=>(args={email,opts},{data:{},error:null});
+ await window.icAuthForgot();sb.auth.resetPasswordForEmail=old;return args;
+});
+assert.equal(forgotCapture.email,'test@example.invalid');
+assert.match(forgotCapture.opts.redirectTo,/\/issoire-connect\/app\/\?auth=recovery$/);
+await page.evaluate(()=>window.authModal('login'));
+assert.match(await page.locator('.modalback:visible,.modal:visible').last().innerText(),/Mot de passe oublié/i);
+console.log('ISSOIRE CONNECT AUTH UI PASS',JSON.stringify({base:BASE,globals,signupRedirect:signupCapture.options.emailRedirectTo,resetRedirect:forgotCapture.opts.redirectTo}));
+await browser.close();
