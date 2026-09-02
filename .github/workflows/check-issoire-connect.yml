@@ -21,7 +21,7 @@ jobs:
           test -f issoire-connect/app/index.html
           test -f issoire-connect/app/manifest.webmanifest
           test -f issoire-connect/app/sw.js
-          for f in claim-patch.js pro-edit-patch.js search-patch.js admin-full-patch.js admin-business-extra-patch.js leaflet-safety-patch.js directory-patch.js resident-classifieds-patch.js directory-route-fix.js directory-state-patch.js public-classifieds-patch.js moderation-patch.js plans-patch.js admin-plan-access-patch.js ads-system-patch.js admin-profile-audit-patch.js account-security-patch.js push-notifications-patch.js; do test -f "issoire-connect/app/$f"; node --check "issoire-connect/app/$f"; done
+          for f in claim-patch.js pro-edit-patch.js search-patch.js admin-full-patch.js admin-business-extra-patch.js leaflet-safety-patch.js directory-patch.js resident-classifieds-patch.js directory-route-fix.js directory-state-patch.js public-classifieds-patch.js moderation-patch.js plans-patch.js admin-plan-access-patch.js ads-system-patch.js local-needs-patch.js admin-profile-audit-patch.js account-security-patch.js push-notifications-patch.js; do test -f "issoire-connect/app/$f"; node --check "issoire-connect/app/$f"; done
           for f in v3-data-0.txt v3-data-1.txt v3-data-2.txt v3-data-3.txt; do test -f "issoire-connect/app/$f"; done
           node -e "JSON.parse(require('fs').readFileSync('issoire-connect/app/manifest.webmanifest','utf8'))"
           grep -q "PHOTO_BUCKET='ic-classifieds'" issoire-connect/app/resident-classifieds-patch.js
@@ -32,6 +32,11 @@ jobs:
           grep -q "19,99 € / mois" issoire-connect/app/plans-patch.js
           grep -q "icAdminHasAllPlans" issoire-connect/app/admin-plan-access-patch.js
           grep -q "icDirectoryPersistentState" issoire-connect/app/directory-state-patch.js
+          grep -q "ic_track_ad_event" issoire-connect/app/ads-system-patch.js
+          grep -q "ic_ad_campaign_stats" issoire-connect/app/ads-system-patch.js
+          grep -q "openIcNeedRequest" issoire-connect/app/local-needs-patch.js
+          grep -q "ic_needs_for_business" issoire-connect/app/local-needs-patch.js
+          grep -q "ic_reply_to_need" issoire-connect/app/local-needs-patch.js
           grep -q "Tous les forfaits sont inclus" issoire-connect/app/admin-profile-audit-patch.js
           grep -q "openIcAdminAudit" issoire-connect/app/admin-profile-audit-patch.js
           grep -q "openIcChangePassword" issoire-connect/app/account-security-patch.js
@@ -40,18 +45,13 @@ jobs:
           grep -q "ic_webpush_public_key" issoire-connect/app/push-notifications-patch.js
           grep -q "ic_upsert_push_subscription" issoire-connect/app/push-notifications-patch.js
           grep -q "ic-test-push" issoire-connect/app/push-notifications-patch.js
-          grep -q "ic_track_ad_event" issoire-connect/app/ads-system-patch.js
-          grep -q "ic_ad_campaign_stats" issoire-connect/app/ads-system-patch.js
-          grep -q "SPONSORISÉ PREMIUM" issoire-connect/app/ads-system-patch.js
           grep -q "addEventListener('push'" issoire-connect/app/sw.js
           grep -q "notificationclick" issoire-connect/app/sw.js
-          grep -q "directory-state-patch.js?v=27" issoire-connect/app/index.html
-          grep -q "ads-system-patch.js?v=27" issoire-connect/app/index.html
-          grep -q "admin-profile-audit-patch.js?v=27" issoire-connect/app/index.html
-          grep -q "account-security-patch.js?v=27" issoire-connect/app/index.html
-          grep -q "push-notifications-patch.js?v=27" issoire-connect/app/index.html
-          grep -q "plans-patch.js?v=27" issoire-connect/app/index.html
-          grep -q "issoire-connect-v27-full" issoire-connect/app/sw.js
+          grep -q "local-needs-patch.js?v=28" issoire-connect/app/index.html
+          grep -q "ads-system-patch.js?v=28" issoire-connect/app/index.html
+          grep -q "directory-state-patch.js?v=28" issoire-connect/app/index.html
+          grep -q "plans-patch.js?v=28" issoire-connect/app/index.html
+          grep -q "issoire-connect-v28-full" issoire-connect/app/sw.js
           grep -q "4,99 €" issoire-connect/index.html
           grep -q "9,99 €" issoire-connect/index.html
           grep -q "19,99 €" issoire-connect/index.html
@@ -74,24 +74,24 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ic-http.log 2>&1 &
           for i in {1..20}; do curl -fsS http://127.0.0.1:4173/issoire-connect/ >/dev/null && exit 0; sleep .5; done
           cat /tmp/ic-http.log; exit 1
-      - name: Chromium smoke test local V27
+      - name: Chromium smoke test local V28
         run: node tests/issoire-connect-smoke.mjs
-      - name: Wait for public GitHub Pages V27 loader
+      - name: Wait for public GitHub Pages V28 loader
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
             BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?deploy=${GITHUB_SHA}" 2>/dev/null || true)
-            if echo "$BODY" | grep -q 'plans-patch.js?v=27' && echo "$BODY" | grep -q 'ads-system-patch.js?v=27' && echo "$BODY" | grep -q 'directory-state-patch.js?v=27'; then
-              echo 'Issoire Connect V27 is live.'
+            if echo "$BODY" | grep -q 'plans-patch.js?v=28' && echo "$BODY" | grep -q 'ads-system-patch.js?v=28' && echo "$BODY" | grep -q 'local-needs-patch.js?v=28'; then
+              echo 'Issoire Connect V28 is live.'
               exit 0
             fi
-            echo "Waiting for GitHub Pages V27 ($i/60)..."
+            echo "Waiting for GitHub Pages V28 ($i/60)..."
             sleep 5
           done
-          echo 'The V27 loader did not appear within 5 minutes.'
+          echo 'The V28 loader did not appear within 5 minutes.'
           exit 1
-      - name: Chromium smoke test public V27
+      - name: Chromium smoke test public V28
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           IC_BASE: https://djerhemiank-source.github.io/signal-deal/issoire-connect/
