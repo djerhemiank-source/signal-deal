@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 const BASE=process.env.IC_BASE||'http://127.0.0.1:4173/issoire-connect/';
+const hasExactLegacyPrice=text=>text.split(/\r?\n/).some(line=>/^9,99 €(?:\s*\/\s*mois)?$/i.test(line.trim()));
 async function run(viewport){
  const browser=await chromium.launch({headless:true});
  const context=await browser.newContext({viewport,serviceWorkers:'block'});
@@ -13,7 +14,7 @@ async function run(viewport){
  const landing=await page.locator('body').innerText();
  assert.match(landing,/0 €/,'Resident free price missing on landing');
  assert.match(landing,/4,99 €/,'Pro Local price missing on landing');
- assert.doesNotMatch(landing,/9,99 €/,'Obsolete middle plan still visible on landing');
+ assert.equal(hasExactLegacyPrice(landing),false,'Obsolete middle plan still visible on landing');
  assert.match(landing,/19,99 €/,'Pro 360 price missing on landing');
  assert.match(landing,/Paiements encore en mode test/i,'Stripe test mode warning missing');
  assert.match(landing,/ÊTRE TROUVÉ/i,'Pro Local positioning missing');
@@ -35,7 +36,7 @@ async function run(viewport){
  assert.match(planText,/19,99 €/);
  assert.match(planText,/Radar Prospects/);
  assert.match(planText,/Tout est inclus|TOUT INCLUS/i);
- assert.doesNotMatch(planText,/9,99 €/);
+ assert.equal(hasExactLegacyPrice(planText),false,'Obsolete middle plan still visible in app pricing');
  await page.locator('.modalback').click();
 
  await page.locator('[data-page="search"]').click();
