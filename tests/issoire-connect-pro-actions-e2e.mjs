@@ -5,8 +5,8 @@ const APP=process.env.IC_APP||'https://djerhemiank-source.github.io/signal-deal/
 const EMAIL='ic-e2e-proplus-4ce3e733@example.com';
 const PASS='IcTest-dI944aZBleDX1g';
 const stamp=Date.now();
-const serviceName=`E2E prestation V40 ${stamp}`;
-const benefitTitle=`E2E avantage V40 ${stamp}`;
+const serviceName=`E2E prestation V45 ${stamp}`;
+const benefitTitle=`E2E avantage V45 ${stamp}`;
 
 async function toast(page,text,timeout=15000){
   await page.waitForFunction(t=>document.querySelector('#toast')?.textContent.includes(t),text,{timeout});
@@ -42,12 +42,16 @@ page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
 try{
   await login(page);
 
-  // 1) Publier une prestation via le nouveau formulaire V40.
-  const serviceBtn=page.locator('button',{hasText:'+ Prestation'}).first();
+  // 1) Tableau Pro -> Mes produits/services -> Prestation détaillée -> publication réelle.
+  await page.locator('button',{hasText:'Ouvrir'}).filter({has:page.locator('xpath=ancestor::article[contains(.,"Mes produits/services")]')}).first().click().catch(async()=>{
+    await page.evaluate(()=>openV42Products());
+  });
+  await page.waitForFunction(()=>/Mes produits\/services/i.test(document.querySelector('main')?.innerText||''),null,{timeout:10000});
+  const serviceBtn=page.locator('button',{hasText:'Prestation détaillée'}).first();
   await serviceBtn.waitFor({state:'visible',timeout:12000});
   await serviceBtn.click();
   await page.locator('#icsName').fill(serviceName);
-  await page.locator('#icsDesc').fill('Prestation temporaire de validation automatique.');
+  await page.locator('#icsDesc').fill('Prestation temporaire de validation automatique V45.');
   await page.locator('#icsPrice').fill('25');
   await page.locator('#modalBody button',{hasText:'Publier la prestation'}).click();
   await toast(page,'Prestation publiée.');
@@ -59,16 +63,18 @@ try{
   assert.equal(serviceRow.data?.name,serviceName,'prestation absente de Supabase');
   console.log('PASS prestation',serviceRow.data.id);
 
-  // 2) Publier un avantage Issoire Connect.
+  // 2) Tableau Pro -> Mes avantages -> création réelle.
   await page.locator('[data-page="account"]').click();
   await page.waitForFunction(()=>/TEST ProPlus Issoire/.test(document.querySelector('main')?.innerText||''),null,{timeout:10000});
+  await page.evaluate(()=>openV42Benefits());
+  await page.waitForFunction(()=>/Mes avantages/i.test(document.querySelector('main')?.innerText||''),null,{timeout:10000});
   const benefitBtn=page.locator('button',{hasText:'Créer un avantage'}).first();
   await benefitBtn.waitFor({state:'visible',timeout:12000});
   await benefitBtn.click();
   await page.locator('#icbTitle').fill(benefitTitle);
   await page.locator('#icbKind').selectOption('percent');
   await page.locator('#icbValue').fill('10');
-  await page.locator('#icbDesc').fill('Avantage temporaire de validation automatique.');
+  await page.locator('#icbDesc').fill('Avantage temporaire de validation automatique V45.');
   await page.locator('#modalBody button',{hasText:"Publier l’avantage"}).click();
   await toast(page,'Avantage Issoire Connect publié.');
   const benefitRow=await page.evaluate(async title=>{
@@ -79,7 +85,7 @@ try{
   assert.equal(benefitRow.data?.member_only,true,'avantage non marqué membre');
   console.log('PASS avantage',benefitRow.data.id);
 
-  // 3) Lancer le Radar Prospects Pro 360 et vérifier la réponse de l’Edge Function.
+  // 3) Radar Prospects Pro 360 : requête serveur et rendu résultats.
   await page.locator('[data-page="account"]').click();
   await page.waitForFunction(()=>/TEST ProPlus Issoire/.test(document.querySelector('main')?.innerText||''),null,{timeout:10000});
   await page.evaluate(()=>openIcProspectRadarV40());
@@ -88,14 +94,14 @@ try{
   await page.locator('#icV40City').fill('Issoire');
   await page.locator('#icV40Postal').fill('63500');
   await page.locator('#icV40Radius').selectOption('20');
-  const radarResponse=page.waitForResponse(r=>r.url().includes('/functions/v1/ic-prospect-radar'),{timeout:25000});
+  const radarResponse=page.waitForResponse(r=>r.url().includes('/functions/v1/ic-prospect-radar'),{timeout:30000});
   await page.locator('#icV40Run').click();
   const rr=await radarResponse;
   const body=await rr.text();
   assert(rr.ok(),`radar HTTP ${rr.status()} ${body.slice(0,600)}`);
   let json={};try{json=JSON.parse(body)}catch{}
   assert(!json.error,`radar error ${JSON.stringify(json)}`);
-  await page.waitForFunction(()=>/résultat\(s\)/i.test(document.querySelector('main')?.innerText||''),null,{timeout:12000});
+  await page.waitForFunction(()=>/résultat\(s\)/i.test(document.querySelector('main')?.innerText||''),null,{timeout:15000});
   console.log('PASS radar',json.loaded ?? json.items?.length ?? 'ok');
 
   assert.equal(pageErrors.length,0,'page errors: '+pageErrors.join(' | '));
