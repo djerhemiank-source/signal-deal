@@ -53,8 +53,9 @@ window.confirmDeleteIcAgendaItem=async function(id){if(!logged())return;const {e
 
 window.addIcEventToAgenda=async function(eventId){
  if(!logged())return authModal('events');const ev=(S.events||[]).find(x=>x.id===eventId);if(!ev)return say('Événement introuvable.');
+ const {data:already,error:checkError}=await sb.from('ic_personal_agenda').select('id').eq('user_id',S.session.user.id).eq('source_event_id',eventId).maybeSingle();if(checkError)return say(checkError.message);if(already?.id)return say('Cet événement est déjà dans votre agenda.');
  const payload={user_id:S.session.user.id,title:ev.title||'Événement',starts_at:ev.starts_at,ends_at:ev.ends_at||null,place:ev.place||null,notes:ev.description||null,source_event_id:ev.id,updated_at:new Date().toISOString()};
- const {error}=await sb.from('ic_personal_agenda').upsert(payload,{onConflict:'user_id,source_event_id',ignoreDuplicates:true});if(error)return say(error.message);say('Événement ajouté à votre agenda.')
+ const {error}=await sb.from('ic_personal_agenda').insert(payload);if(error)return say(error.message);say('Événement ajouté à votre agenda.')
 };
 function decoratePublicEvents(){
  if(typeof main==='undefined'||!main)return;
@@ -80,7 +81,6 @@ if(typeof baseGo==='function')window.go=function(page,...args){
  return r;
 };
 
-// Si l’utilisateur arrive depuis une connexion demandée par l’agenda.
 setTimeout(()=>{if(S.page==='agenda')renderIcAgenda();if(S.page==='events')decoratePublicEvents()},250);
 window.icAgenda={version:'43.0',load:loadAgenda,render:window.renderIcAgenda};
 })();
