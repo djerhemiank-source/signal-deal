@@ -25,7 +25,11 @@ async function run(viewport){
  await page.locator('[data-page="search"]').waitFor({state:'visible',timeout:15000});
  await page.locator('.communitystats').waitFor({state:'visible',timeout:20000});
  assert.match(await page.locator('main').innerText(),/Tout Issoire/i,'home did not finish loading');
- await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openClassifiedContact==='function'&&typeof window.openReportContent==='function'&&typeof window.openReportsAdmin==='function'&&typeof window.openIcPlans==='function'&&typeof window.startIcPlanCheckout==='function'&&typeof window.icHasPro360==='function',null,{timeout:20000});
+ await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openReportContent==='function'&&typeof window.openIcPlans==='function'&&typeof window.startIcPlanCheckout==='function'&&typeof window.icHasPro360==='function'&&window.icV42?.version==='42.0',null,{timeout:20000});
+
+ const homeText=await page.locator('main').innerText();
+ assert.match(homeText,/Annonces & besoins/i,'unified publications entry missing');
+ assert.doesNotMatch(homeText,/\bEntraide\b/i,'legacy duplicate Entraide tile still visible');
 
  await page.evaluate(()=>openIcPlans());
  await page.locator('.modalback').waitFor({state:'visible',timeout:5000});
@@ -65,22 +69,25 @@ async function run(viewport){
  await page.waitForFunction(()=>/Autour de moi/i.test(document.querySelector('main')?.innerText||'')&&!!document.querySelector('#icMap'),null,{timeout:20000});
 
  await page.evaluate(()=>go('classifieds'));
- await page.locator('#caQ').waitFor({state:'visible',timeout:20000});
- assert.match(await page.locator('main').innerText(),/Petites annonces locales/i,'public classifieds did not render');
- await page.locator('[data-report-classified]').first().waitFor({state:'visible',timeout:10000});
- assert(await page.locator('button',{hasText:'Déposer'}).first().isVisible(),'classified deposit action missing');
- await page.locator('#caQ').fill('vélo');
+ await page.locator('#v42FeedQ').waitFor({state:'visible',timeout:20000});
+ const feedText=await page.locator('main').innerText();
+ assert.match(feedText,/Annonces & besoins locaux/i,'V42 unified publications page did not render');
+ assert.match(feedText,/Publier un besoin|🙋 Besoin/i,'need publishing action missing');
+ assert(await page.locator('button',{hasText:'Déposer une annonce'}).first().isVisible(),'classified deposit action missing');
+ await page.locator('#v42FeedQ').fill('vélo');
  await page.locator('button',{hasText:'Filtrer'}).click();
- await page.locator('#caQ').waitFor({state:'visible',timeout:10000});
+ await page.locator('#v42FeedQ').waitFor({state:'visible',timeout:10000});
+ await page.locator('button',{hasText:'Réinitialiser'}).click();
+ await page.locator('#v42FeedQ').waitFor({state:'visible',timeout:10000});
 
  await page.locator('header button[title="Démonstration commerciale"]').click();
  await page.locator('.modalback').waitFor({state:'visible',timeout:5000});
  assert.match(await page.locator('#modalBody').innerText(),/démonstration entreprises/i);
  await page.locator('.modalback').click();
  assert(errors.length===0,errors.join(' | '));
- assert(supabase>=1,'V3 should connect to Supabase');
+ assert(supabase>=1,'App should connect to Supabase');
  await browser.close();return{supabase};
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT V32 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
+console.log('ISSOIRE CONNECT V42 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
