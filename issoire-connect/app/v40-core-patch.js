@@ -2,7 +2,7 @@
 if(typeof window==='undefined'||typeof S==='undefined'||typeof sb==='undefined')return;
 const RADII=[1,5,10,20,50];
 const V={items:[],last:null};
-const e=v=>typeof esc==='function'?esc(String(v??'')):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
+const e=v=>typeof esc==='function'?esc(String(v??'')):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const logged=()=>!!S.session;
 const pro360=()=>typeof window.icHasPro360==='function'?window.icHasPro360():S.profile?.role==='admin'||['pro','proplus'].includes(S.subscription?.plan||'');
 function radiusOptions(value=20,zero=false){const vals=zero?[0,...RADII]:RADII;return vals.map(x=>`<option value="${x}" ${Number(value)===x?'selected':''}>${x===0?'Toutes distances':x+' km'}</option>`).join('')}
