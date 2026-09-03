@@ -1,0 +1,31 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'fr.issoireconnect.app'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'fr.issoireconnect.app'
+        minSdk 23
+        targetSdk 36
+        versionCode 40
+        versionName '40.0.0-core'
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-test'
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
