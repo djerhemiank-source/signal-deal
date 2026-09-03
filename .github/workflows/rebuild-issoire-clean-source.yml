@@ -18,6 +18,10 @@ on:
       - issoire-connect/app/legal-v40.js
       - issoire-connect/app/subscription-v32.js
       - issoire-connect/app/functional-audit-fix-v41.js
+      - issoire-connect/app/ui-consolidation-v42.js
+      - issoire-connect/app/agenda-v43.js
+      - issoire-connect/app/admin-users-v44.js
+      - issoire-connect/app/admin-owner-v45.js
   workflow_dispatch:
 
 permissions:
@@ -31,7 +35,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reconstruct readable V41 source
+      - name: Reconstruct readable V45 source
         shell: bash
         run: |
           set -euo pipefail
@@ -39,10 +43,9 @@ jobs:
           SRC="issoire-connect/app"
           mkdir -p "$OUT"
 
-          node --check "$SRC/pro-edit-patch.js"
-          node --check "$SRC/auth-flow-patch-v40.js"
-          node --check "$SRC/mobile-pro-services-v40.js"
-          node --check "$SRC/functional-audit-fix-v41.js"
+          for f in pro-edit-patch.js auth-flow-patch-v40.js mobile-pro-services-v40.js functional-audit-fix-v41.js ui-consolidation-v42.js agenda-v43.js admin-users-v44.js admin-owner-v45.js; do
+            node --check "$SRC/$f"
+          done
 
           cat "$SRC"/v3-data-{0,1,2,3}.txt \
             | tr -d '\r\n\t ' \
@@ -81,6 +84,10 @@ jobs:
             mobile-pro-services-v40.js
             legal-v40.js
             functional-audit-fix-v41.js
+            ui-consolidation-v42.js
+            agenda-v43.js
+            admin-users-v44.js
+            admin-owner-v45.js
           )
 
           : > "$OUT/app-v40.bundle.js"
@@ -97,7 +104,7 @@ jobs:
           from pathlib import Path
           out = Path('issoire-connect/app-clean')
           html = (out/'base.html').read_text(encoding='utf-8')
-          marker = '<script src="app-v40.bundle.js?v=41.0-clean"></script>'
+          marker = '<script src="app-v40.bundle.js?v=45.0-clean"></script>'
           if '</body>' not in html.lower():
               raise SystemExit('Missing </body> in reconstructed HTML')
           pos = html.lower().rfind('</body>')
@@ -109,7 +116,7 @@ jobs:
           cp "$SRC/icon.svg" "$OUT/icon.svg"
 
           cat > "$OUT/sw.js" <<'SW'
-          const CACHE='issoire-connect-v41-clean-1';
+          const CACHE='issoire-connect-v45-clean-1';
           const CORE=['./','./index.html','./app-v40.bundle.js','./manifest.webmanifest','./icon.svg'];
           self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
           self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
@@ -120,18 +127,16 @@ jobs:
           SW
 
           cat > "$OUT/README.txt" <<'TXT'
-          Issoire Connect V41 - source consolidee
+          Issoire Connect V45 - source consolidee
 
-          Cette version est reconstruite a partir du HTML V3 compresse et regroupe les scripts fonctionnels dans un bundle unique, dans leur ordre d'execution historique, avec functional-audit-fix-v41.js charge en dernier.
+          Cette version est reconstruite a partir du HTML V3 compresse et regroupe les scripts fonctionnels dans un bundle unique, dans leur ordre d'execution historique, jusqu'a admin-owner-v45.js.
           Elle sert aussi de solution de repli pour les navigateurs qui ne prennent pas en charge DecompressionStream.
 
           Fichiers principaux :
           - base.html : HTML V3 decompresse, lisible
           - index.html : HTML lisible chargeant un seul bundle
-          - app-v40.bundle.js : bundle consolide V41
+          - app-v40.bundle.js : bundle consolide V45
           - sw.js : cache PWA propre a la version clean
-
-          V41 aligne la messagerie, les reservations, les commandes, les statuts de commande et les validations d'actions avec le backend reel.
           TXT
 
       - name: Validate clean architecture
@@ -140,20 +145,22 @@ jobs:
           set -euo pipefail
           test -s issoire-connect/app-clean/index.html
           test -s issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'app-v40.bundle.js?v=41.0-clean' issoire-connect/app-clean/index.html
+          grep -q 'app-v40.bundle.js?v=45.0-clean' issoire-connect/app-clean/index.html
           ! grep -q 'v3-data-' issoire-connect/app-clean/index.html
-          test "$(grep -o 'app-v40.bundle.js?v=41.0-clean' issoire-connect/app-clean/index.html | wc -l)" -eq 1
+          test "$(grep -o 'app-v40.bundle.js?v=45.0-clean' issoire-connect/app-clean/index.html | wc -l)" -eq 1
           node --check issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'emailRedirectTo' issoire-connect/app-clean/app-v40.bundle.js
           grep -q 'resendIcSignupConfirmation' issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'openIcProspectRadarV40' issoire-connect/app-clean/app-v40.bundle.js
           grep -q 'icV41FunctionalAudit' issoire-connect/app-clean/app-v40.bundle.js
-          echo "Clean V41 source validated."
+          grep -q 'window.icV42' issoire-connect/app-clean/app-v40.bundle.js
+          grep -q 'window.icAgenda' issoire-connect/app-clean/app-v40.bundle.js
+          grep -q 'window.icAdminUsersV44' issoire-connect/app-clean/app-v40.bundle.js
+          grep -q 'window.icOwnerAdminV45' issoire-connect/app-clean/app-v40.bundle.js
+          echo "Clean V45 source validated."
 
       - name: Upload clean source artifact
         uses: actions/upload-artifact@v4
         with:
-          name: issoire-connect-v41-clean-source
+          name: issoire-connect-v45-clean-source
           path: issoire-connect/app-clean/
           if-no-files-found: error
           retention-days: 30
@@ -169,7 +176,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add issoire-connect/app-clean/
-          git commit -m 'Generate consolidated Issoire Connect V41 clean source'
+          git commit -m 'Generate consolidated Issoire Connect V45 clean source'
           if ! git push; then
             echo 'Push not permitted; artifact remains available for manual promotion.'
           fi
