@@ -1,0 +1,41 @@
+name: Issoire Connect V46 Reliability E2E
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "issoire-connect/app/**"
+      - "tests/issoire-connect-v46-reliability-e2e.mjs"
+      - ".github/workflows/issoire-connect-v46-reliability-e2e.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reliability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Wait for public V46 app
+        run: |
+          URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
+          for i in {1..60}; do
+            BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?reliability=${GITHUB_SHA}" 2>/dev/null || true)
+            if echo "$BODY" | grep -q 'reliability-v46.js?v=46.0'; then
+              echo 'Public V46 detected.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Public V46 was not detected in time.'
+          exit 1
+      - name: Test directory authority, messaging guard and reservation guard
+        env:
+          IC_APP: https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html
+        run: timeout 180s node tests/issoire-connect-v46-reliability-e2e.mjs
