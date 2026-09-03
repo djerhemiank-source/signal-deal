@@ -8,6 +8,13 @@ const pro360=()=>typeof window.icHasPro360==='function'?window.icHasPro360():S.p
 function radiusOptions(value=20,zero=false){const vals=zero?[0,...RADII]:RADII;return vals.map(x=>`<option value="${x}" ${Number(value)===x?'selected':''}>${x===0?'Toutes distances':x+' km'}</option>`).join('')}
 function normalizeSelect(id,value){const el=document.getElementById(id);if(!el)return;const current=Number(value??el.value??10);const best=RADII.includes(current)?current:(current<=1?1:current<=5?5:current<=10?10:current<=20?20:50);el.innerHTML=radiusOptions(best);el.value=String(best)}
 function currentBusiness(){return (S.myBusinesses||[])[0]||null}
+async function invokeRadar(body){
+ let timer;
+ try{return await Promise.race([
+  sb.functions.invoke('ic-prospect-radar',{body}),
+  new Promise(resolve=>{timer=setTimeout(()=>resolve({data:null,error:{message:'Le Radar met trop de temps à répondre. Réessayez dans quelques secondes.'}}),15000)})
+ ])}finally{clearTimeout(timer)}
+}
 
 window.openIcProspectRadarV40=async function(){
  if(!logged()){if(typeof authModal==='function')return authModal('account');return say('Connectez-vous pour utiliser le Radar Prospects.');}
@@ -28,7 +35,7 @@ window.runIcProspectRadarV40=async function(){
  const btn=document.getElementById('icV40Run');if(btn){btn.disabled=true;btn.textContent='Recherche en cours…'}
  let geo=null;try{geo=JSON.parse(localStorage.getItem('ic_resident_geo')||'null')}catch{}
  const body={profession,city,postal_code,radius_km};if(geo){const lat=Number(geo.lat??geo.latitude),lon=Number(geo.lon??geo.lng??geo.longitude);if(Number.isFinite(lat)&&Number.isFinite(lon)){body.latitude=lat;body.longitude=lon}}
- const {data,error}=await sb.functions.invoke('ic-prospect-radar',{body});
+ const {data,error}=await invokeRadar(body);
  if(error){if(btn){btn.disabled=false;btn.textContent='🎯 Lancer le Radar Prospects'};const msg=String(error.message||'');if(/403|pro360/i.test(msg)){closeModal();return openIcPlans()}return say('Radar indisponible : '+msg)}
  if(data?.error==='pro360_required'){closeModal();return openIcPlans()}
  V.items=Array.isArray(data?.items)?data.items:[];V.last={profession,city,postal_code,radius_km};closeModal();renderIcProspectRadarV40(data);
