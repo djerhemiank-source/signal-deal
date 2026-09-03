@@ -1,0 +1,43 @@
+name: Rebuild Issoire Connect Clean Source
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - .github/workflows/rebuild-issoire-clean-source.yml
+      - issoire-connect/app/v3-data-0.txt
+      - issoire-connect/app/v3-data-1.txt
+      - issoire-connect/app/v3-data-2.txt
+      - issoire-connect/app/v3-data-3.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct readable base HTML
+        run: |
+          mkdir -p issoire-connect/app-clean
+          cat issoire-connect/app/v3-data-{0,1,2,3}.txt | tr -d '\r\n\t ' | base64 -d | gzip -d > issoire-connect/app-clean/base.html
+          grep -qi '<!doctype html>\|<html' issoire-connect/app-clean/base.html
+          grep -qi 'Issoire' issoire-connect/app-clean/base.html
+          test $(wc -c < issoire-connect/app-clean/base.html) -gt 10000
+          cp issoire-connect/app/manifest.webmanifest issoire-connect/app-clean/manifest.webmanifest
+          printf '%s\n' 'Generated from v3-data chunks. Do not edit the chunks to modify V40; this readable file is the migration source for the clean architecture.' > issoire-connect/app-clean/README.txt
+      - name: Commit generated readable source
+        run: |
+          if git diff --quiet -- issoire-connect/app-clean/; then
+            echo 'No source change.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add issoire-connect/app-clean/
+          git commit -m 'Generate readable Issoire Connect V40 base source'
+          git push
