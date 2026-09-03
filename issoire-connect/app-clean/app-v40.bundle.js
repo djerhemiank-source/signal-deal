@@ -2165,5 +2165,39 @@ const observer=new MutationObserver(ms=>{for(const m of ms)for(const n of m.adde
 observer.observe(document.body,{childList:true,subtree:true});
 setTimeout(()=>syncReservationButtons(document),100);
 
-window.icV46Reliability={version:'46.0',loadBusinessAuthority,syncReservationButtons};
+// ---------------------------------------------------------------------------
+// Administration V46 : revue des fiches similaires, sans suppression automatique.
+// Même nom + même adresse ne signifie pas nécessairement même entité juridique.
+// ---------------------------------------------------------------------------
+function relatedCount(b){return ['products','offers','jobs','messages','orders','followers','claims'].reduce((n,k)=>n+Number(b?.[k]||0),0)}
+function duplicateBusinessCard(b){
+ const linked=relatedCount(b),protectedRow=!!b.owner_id||!!b.is_claimed||linked>0;
+ return `<article class="card" style="margin:8px 0"><div class="row between"><div><span class="pill">${protectedRow?'🔴 LIENS À PRÉSERVER':'⚪ SANS LIEN'}</span><h3 style="margin:7px 0 2px">${esc46(b.name||'Entreprise')}</h3></div><span class="pill">${esc46(b.naf_code||'NAF ?')}</span></div><div class="muted">SIRET : <b>${esc46(b.siret||'—')}</b><br>SIREN : ${esc46(b.siren||'—')}<br>Activité : ${esc46(b.category||'—')}<br>Source : ${esc46(b.source||'—')} · ${b.owner_id?'compte professionnel lié':'aucun propriétaire lié'}</div><div class="notice" style="margin-top:8px">Produits/services : <b>${Number(b.products||0)}</b> · Avantages : <b>${Number(b.offers||0)}</b> · Emplois : <b>${Number(b.jobs||0)}</b><br>Messages : <b>${Number(b.messages||0)}</b> · Commandes : <b>${Number(b.orders||0)}</b> · Abonnés : <b>${Number(b.followers||0)}</b> · Revendications : <b>${Number(b.claims||0)}</b></div></article>`;
+}
+async function renderDuplicateReview(){
+ const host=document.getElementById('icOwnerAdminBody');if(!host)return;
+ host.innerHTML='<div class="empty">Analyse des fiches similaires…</div>';
+ const {data,error}=await sb.rpc('ic_admin_duplicate_business_candidates',{p_limit:150});
+ if(error){host.innerHTML=`<div class="notice"><b>Impossible de charger la revue.</b><br>${esc46(error.message)}</div>`;return}
+ const groups=data||[];
+ host.innerHTML=`<div class="sectionhead"><div><h2>🧬 Fiches similaires à vérifier</h2><p><b>${groups.length}</b> groupe(s) avec le même nom et la même adresse.</p></div></div><div class="notice"><b>Aucune suppression automatique.</b><br>Deux fiches identiques visuellement peuvent avoir des SIRET et des activités NAF différents : exploitant, propriétaire des murs, ancienne/nouvelle société, etc. Une fiche reliée à un compte ou à de l’activité doit toujours être préservée.</div>${groups.length?groups.map(g=>{const rows=Array.isArray(g.businesses)?g.businesses:[];const sirets=new Set(rows.map(x=>x.siret).filter(Boolean));const nafs=new Set(rows.map(x=>x.naf_code).filter(Boolean));const legal=sirets.size>1?'SIRET distincts':sirets.size===1?'Même SIRET':'SIRET incomplet';const activity=nafs.size>1?'activités NAF différentes':'activité NAF identique ou proche';return `<section class="card" style="margin:12px 0;border-left:4px solid #f47721"><div class="row between"><div><span class="pill">${Number(g.candidate_count||rows.length)} FICHES</span><h3 style="margin:7px 0 2px">${esc46(g.display_name)}</h3><div class="muted">${esc46(g.display_address||'')} ${esc46(g.postal_code||'')}</div></div><span class="pill">⚠️ À VÉRIFIER</span></div><p><b>${esc46(legal)}</b> · ${esc46(activity)}.</p>${rows.map(duplicateBusinessCard).join('')}</section>`}).join(''):'<div class="empty">Aucune fiche similaire détectée.</div>'}`;
+}
+function injectDuplicateTab(active){
+ const activity=[...document.querySelectorAll('button')].find(b=>(b.getAttribute('onclick')||'').includes("openIcOwnerAdmin('activity')"));
+ if(!activity)return;
+ let btn=document.getElementById('icV46DuplicateTab');
+ if(!btn){btn=document.createElement('button');btn.id='icV46DuplicateTab';btn.className='btn';btn.textContent='🧬 Fiches similaires';btn.onclick=()=>window.openIcOwnerAdmin('duplicates');activity.insertAdjacentElement('afterend',btn)}
+ btn.classList.toggle('brand',active==='duplicates');
+ if(active==='duplicates')document.querySelectorAll("button[onclick*='openIcOwnerAdmin']").forEach(b=>{if(b.id!=='icV46DuplicateTab')b.classList.remove('brand')});
+}
+const oldOwnerAdmin=window.openIcOwnerAdmin;
+if(typeof oldOwnerAdmin==='function')window.openIcOwnerAdmin=async function(tab='users'){
+ const base=tab==='duplicates'?'businesses':tab;
+ const result=await oldOwnerAdmin(base);
+ injectDuplicateTab(tab);
+ if(tab==='duplicates')await renderDuplicateReview();
+ return result;
+};
+
+window.icV46Reliability={version:'46.0',loadBusinessAuthority,syncReservationButtons,renderDuplicateReview};
 })();
