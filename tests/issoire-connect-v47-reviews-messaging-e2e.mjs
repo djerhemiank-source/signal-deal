@@ -26,7 +26,7 @@ async function waitReviews(){
 async function cleanup(){
   try{
     await page.evaluate(async ({business,marker})=>{
-      if(!window.S?.session||!window.sb)return;
+      if(!S?.session||!sb)return;
       const {data}=await sb.rpc('ic_business_reviews',{p_business:business,p_limit:100,p_offset:0});
       const row=(data||[]).find(r=>r.is_mine===true&&r.comment===marker);
       if(row)await sb.rpc('ic_delete_my_review',{p_review:row.id});
@@ -36,8 +36,8 @@ async function cleanup(){
 
 try{
   await page.goto(APP+`?v47-e2e=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:30000});
-  await page.waitForFunction(()=>window.icV47?.version==='47.0'&&typeof window.openIcMessagesV47==='function',null,{timeout:25000});
-  console.log('PASS V47 module loaded');
+  await page.waitForFunction(()=>window.icV47?.version==='47.0'&&window.icV47BusinessModalFix?.version==='47.0'&&typeof window.openIcMessagesV47==='function',null,{timeout:25000});
+  console.log('PASS V47 module + modal fix loaded');
 
   await page.evaluate(id=>viewBusiness(id),BUSINESS);
   await waitReviews();
@@ -55,7 +55,34 @@ try{
   await page.waitForFunction(()=>!!S.session,null,{timeout:20000});
   console.log('PASS login');
 
-  await page.evaluate(id=>viewBusiness(id),BUSINESS);
+  const before=await page.evaluate(id=>({
+    publicCount:(S.businesses||[]).filter(b=>b.id===id).length,
+    myCount:(S.myBusinesses||[]).filter(b=>b.id===id).length,
+    publicName:(S.businesses||[]).find(b=>b.id===id)?.name||null,
+    ownerKnown:(S.businesses||[]).find(b=>b.id===id)?.owner_id!==undefined,
+    modalHidden:document.getElementById('modal')?.classList.contains('hidden'),
+    modalText:(document.getElementById('modalBody')?.innerText||'').slice(0,120),
+    hotfix:window.icV47BusinessModalFix?.version||null
+  }),BUSINESS);
+  console.log('DIAG before reopen',JSON.stringify(before));
+
+  const after=await page.evaluate(async id=>{
+    const r=window.viewBusiness(id);
+    if(r&&typeof r.then==='function')await r;
+    await new Promise(resolve=>setTimeout(resolve,500));
+    return {
+      publicCount:(S.businesses||[]).filter(b=>b.id===id).length,
+      publicName:(S.businesses||[]).find(b=>b.id===id)?.name||null,
+      modalHidden:document.getElementById('modal')?.classList.contains('hidden'),
+      modalClass:document.getElementById('modal')?.className||null,
+      modalText:(document.getElementById('modalBody')?.innerText||'').slice(0,180),
+      reviewVisible:!!document.getElementById('ic47ReviewSection')&&getComputedStyle(document.getElementById('ic47ReviewSection')).display!=='none'&&getComputedStyle(document.getElementById('modal')).display!=='none'
+    };
+  },BUSINESS);
+  console.log('DIAG after reopen',JSON.stringify(after));
+  assert.equal(after.modalHidden,false,'La fiche entreprise doit rouvrir le modal après connexion');
+  assert.equal(after.publicCount,1,'La fiche doit être synchronisée dans S.businesses');
+
   await waitReviews();
   await page.locator('#ic47ReviewSection button',{hasText:/Donner mon avis|Modifier mon avis/}).click();
   await page.locator('#ic47ReviewRating').selectOption('5');
