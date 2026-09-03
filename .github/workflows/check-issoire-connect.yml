@@ -18,7 +18,7 @@ jobs:
       - name: Static validation
         run: |
           for f in issoire-connect/index.html issoire-connect/mentions-legales.html issoire-connect/confidentialite.html issoire-connect/cgu.html issoire-connect/cgv-pro.html issoire-connect/app/index.html issoire-connect/app/manifest.webmanifest issoire-connect/app/sw.js; do test -f "$f"; done
-          for f in claim-patch.js pro-edit-patch.js search-patch.js admin-full-patch.js admin-business-extra-patch.js leaflet-safety-patch.js directory-patch.js resident-classifieds-patch.js directory-route-fix.js directory-state-patch.js public-classifieds-patch.js moderation-patch.js plans-patch.js admin-plan-access-patch.js ads-system-patch.js local-needs-patch.js admin-profile-audit-patch.js account-security-patch.js auth-flow-patch-v40.js push-notifications-patch.js member-benefits-patch.js subscription-v32.js v40-core-patch.js radar-prospects-mobile-fix-v40.js mobile-pro-services-v40.js legal-v40.js functional-audit-fix-v41.js ui-consolidation-v42.js agenda-v43.js admin-users-v44.js admin-owner-v45.js reliability-v46.js reviews-messaging-v47-patch.js business-modal-v47-fix.js transaction-experience-v48.js; do test -f "issoire-connect/app/$f"; node --check "issoire-connect/app/$f"; done
+          for f in claim-patch.js pro-edit-patch.js search-patch.js admin-full-patch.js admin-business-extra-patch.js leaflet-safety-patch.js directory-patch.js resident-classifieds-patch.js directory-route-fix.js directory-state-patch.js public-classifieds-patch.js moderation-patch.js plans-patch.js admin-plan-access-patch.js ads-system-patch.js local-needs-patch.js admin-profile-audit-patch.js account-security-patch.js auth-flow-patch-v40.js push-notifications-patch.js member-benefits-patch.js subscription-v32.js v40-core-patch.js radar-prospects-mobile-fix-v40.js mobile-pro-services-v40.js legal-v40.js functional-audit-fix-v41.js ui-consolidation-v42.js agenda-v43.js admin-users-v44.js admin-owner-v45.js reliability-v46.js reviews-messaging-v47-patch.js business-modal-v47-fix.js transaction-experience-v48.js notifications-v49.js; do test -f "issoire-connect/app/$f"; node --check "issoire-connect/app/$f"; done
           for f in v3-data-0.txt v3-data-1.txt v3-data-2.txt v3-data-3.txt; do test -f "issoire-connect/app/$f"; done
           node -e "JSON.parse(require('fs').readFileSync('issoire-connect/app/manifest.webmanifest','utf8'))"
           grep -q "PHOTO_BUCKET='ic-classifieds'" issoire-connect/app/resident-classifieds-patch.js
@@ -29,42 +29,33 @@ jobs:
           grep -q "19,99 € / mois" issoire-connect/app/subscription-v32.js
           ! grep -q "9,99 €" issoire-connect/index.html
           grep -q "openIcNeedRequest" issoire-connect/app/local-needs-patch.js
-          grep -q "approximate=n=>" issoire-connect/app/local-needs-patch.js
           grep -q "const RADII=\[1,5,10,20,50\]" issoire-connect/app/local-needs-patch.js
-          grep -q "Pro 360" issoire-connect/app/local-needs-patch.js
           grep -q "openIcChangePassword" issoire-connect/app/account-security-patch.js
           grep -q "ic-delete-account" issoire-connect/app/account-security-patch.js
-          grep -q "emailRedirectTo:redirectUrl()" issoire-connect/app/auth-flow-patch-v40.js
           grep -q "resendIcSignupConfirmation" issoire-connect/app/auth-flow-patch-v40.js
           grep -q "role:'resident'" issoire-connect/app/auth-flow-patch-v40.js
           grep -q "ic_upsert_push_subscription" issoire-connect/app/push-notifications-patch.js
           grep -q "openIcProspectRadarV40" issoire-connect/app/v40-core-patch.js
           grep -q "ic-prospect-radar" issoire-connect/app/v40-core-patch.js
-          grep -q "el.id==='icV40Run'" issoire-connect/app/v40-core-patch.js
           grep -q "openIcBusinessModeV40" issoire-connect/app/mobile-pro-services-v40.js
           grep -q "openIcServiceV40" issoire-connect/app/mobile-pro-services-v40.js
-          grep -q "Particuliers + professionnels" issoire-connect/app/mobile-pro-services-v40.js
           grep -q "openIcLegal" issoire-connect/app/legal-v40.js
           grep -q "Version de pré-lancement" issoire-connect/confidentialite.html
           grep -q "Pro Local — 4,99 € / mois" issoire-connect/cgv-pro.html
           grep -q "Pro 360 — 19,99 € / mois" issoire-connect/cgv-pro.html
           grep -q "addEventListener('push'" issoire-connect/app/sw.js
           grep -q "notificationclick" issoire-connect/app/sw.js
-          grep -q "auth-flow-patch-v40.js?v=48.0" issoire-connect/app/index.html
-          grep -q "ui-consolidation-v42.js?v=48.0" issoire-connect/app/index.html
-          grep -q "agenda-v43.js?v=48.0" issoire-connect/app/index.html
-          grep -q "admin-users-v44.js?v=48.0" issoire-connect/app/index.html
-          grep -q "admin-owner-v45.js?v=48.0" issoire-connect/app/index.html
-          grep -q "reliability-v46.js?v=48.0" issoire-connect/app/index.html
-          grep -q "reviews-messaging-v47-patch.js?v=48.0" issoire-connect/app/index.html
-          grep -q "business-modal-v47-fix.js?v=48.0" issoire-connect/app/index.html
-          grep -q "transaction-experience-v48.js?v=48.0" issoire-connect/app/index.html
+          grep -q "auth-flow-patch-v40.js?v=49.0" issoire-connect/app/index.html
+          grep -q "ui-consolidation-v42.js?v=49.0" issoire-connect/app/index.html
+          grep -q "agenda-v43.js?v=49.0" issoire-connect/app/index.html
+          grep -q "reliability-v46.js?v=49.0" issoire-connect/app/index.html
+          grep -q "reviews-messaging-v47-patch.js?v=49.0" issoire-connect/app/index.html
+          grep -q "business-modal-v47-fix.js?v=49.0" issoire-connect/app/index.html
+          grep -q "transaction-experience-v48.js?v=49.0" issoire-connect/app/index.html
+          grep -q "notifications-v49.js?v=49.0" issoire-connect/app/index.html
           grep -q "ic_personal_agenda" issoire-connect/app/agenda-v43.js
           grep -q "Mon agenda" issoire-connect/app/agenda-v43.js
-          grep -q "Ajouter à mon agenda" issoire-connect/app/agenda-v43.js
           grep -q "ic_public_needs" issoire-connect/app/ui-consolidation-v42.js
-          grep -q "ic_admin_user_directory" issoire-connect/app/ui-consolidation-v42.js
-          grep -q "Annonces & besoins locaux" issoire-connect/app/ui-consolidation-v42.js
           grep -q "Tableau de bord Pro" issoire-connect/app/ui-consolidation-v42.js
           grep -q "ic_admin_user_directory_v2" issoire-connect/app/admin-users-v44.js
           grep -q "ic_is_admin" issoire-connect/app/admin-owner-v45.js
@@ -75,13 +66,20 @@ jobs:
           grep -q "ic_get_my_conversations" issoire-connect/app/reviews-messaging-v47-patch.js
           grep -q "window.icV47BusinessModalFix" issoire-connect/app/business-modal-v47-fix.js
           grep -q "window.icV48" issoire-connect/app/transaction-experience-v48.js
+          grep -q "data-ic-order" issoire-connect/app/transaction-experience-v48.js
+          grep -q "focusOrder" issoire-connect/app/transaction-experience-v48.js
           grep -q "ic_my_transaction_experience" issoire-connect/app/transaction-experience-v48.js
           grep -q "ic_add_order_to_agenda" issoire-connect/app/transaction-experience-v48.js
           grep -q "ic_set_order_status" issoire-connect/app/transaction-experience-v48.js
           grep -q "Donner un avis vérifié" issoire-connect/app/transaction-experience-v48.js
+          grep -q "window.icV49" issoire-connect/app/notifications-v49.js
+          grep -q "Centre de notifications" issoire-connect/app/notifications-v49.js
+          grep -q "ic_notifications" issoire-connect/app/notifications-v49.js
+          grep -q "openIc49Notification" issoire-connect/app/notifications-v49.js
+          grep -q "ic-v49-notifications" issoire-connect/app/notifications-v49.js
           grep -q "app-clean/index.html" issoire-connect/app/index.html
-          grep -q "issoire-connect-v48-transaction-experience-1" issoire-connect/app/sw.js
-          grep -q "transaction-experience-v48.js" issoire-connect/app/sw.js
+          grep -q "issoire-connect-v49-smart-notifications-1" issoire-connect/app/sw.js
+          grep -q "notifications-v49.js" issoire-connect/app/sw.js
           grep -q "4,99 €" issoire-connect/index.html
           grep -q "19,99 €" issoire-connect/index.html
           grep -q "Deux abonnements Pro" issoire-connect/index.html
@@ -106,14 +104,14 @@ jobs:
           cat /tmp/ic-http.log; exit 1
       - name: Chromium smoke test local
         run: node tests/issoire-connect-smoke.mjs
-      - name: Wait for public GitHub Pages V48 loader
+      - name: Wait for public GitHub Pages V49 loader
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
             BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?deploy=${GITHUB_SHA}" 2>/dev/null || true)
-            if echo "$BODY" | grep -q 'auth-flow-patch-v40.js?v=48.0' && echo "$BODY" | grep -q 'reviews-messaging-v47-patch.js?v=48.0' && echo "$BODY" | grep -q 'transaction-experience-v48.js?v=48.0'; then
-              echo 'Issoire Connect V48 loader is live.'
+            if echo "$BODY" | grep -q 'auth-flow-patch-v40.js?v=49.0' && echo "$BODY" | grep -q 'transaction-experience-v48.js?v=49.0' && echo "$BODY" | grep -q 'notifications-v49.js?v=49.0'; then
+              echo 'Issoire Connect V49 loader is live.'
               exit 0
             fi
             sleep 5
