@@ -5,6 +5,7 @@ on:
     paths:
       - "issoire-connect/app/index.html"
       - "issoire-connect/app/reviews-messaging-v47-patch.js"
+      - "issoire-connect/app/business-modal-v47-fix.js"
       - "issoire-connect/app/sw.js"
       - "issoire-connect/app-clean/**"
       - "tests/issoire-connect-v47-reviews-messaging-e2e.mjs"
@@ -22,7 +23,9 @@ jobs:
         with:
           node-version: '22'
       - name: Validate V47 syntax
-        run: node --check issoire-connect/app/reviews-messaging-v47-patch.js
+        run: |
+          node --check issoire-connect/app/reviews-messaging-v47-patch.js
+          node --check issoire-connect/app/business-modal-v47-fix.js
       - name: Install Chromium
         run: |
           npm install --no-save playwright@1.55.0
@@ -32,7 +35,7 @@ jobs:
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
             BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?v47=${GITHUB_SHA}" 2>/dev/null || true)
-            if echo "$BODY" | grep -q 'reviews-messaging-v47-patch.js?v=47.0'; then
+            if echo "$BODY" | grep -q 'reviews-messaging-v47-patch.js?v=47.0' && echo "$BODY" | grep -q 'business-modal-v47-fix.js?v=47.0'; then
               echo 'Public V47 detected.'
               exit 0
             fi
