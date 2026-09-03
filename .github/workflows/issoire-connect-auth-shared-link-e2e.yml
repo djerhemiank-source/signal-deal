@@ -1,0 +1,39 @@
+name: Issoire Connect Shared Link Auth E2E
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "issoire-connect/app/index.html"
+      - "issoire-connect/app/auth-flow-patch-v40.js"
+      - "issoire-connect/app/sw.js"
+      - "issoire-connect/app-clean/**"
+      - "tests/issoire-connect-auth-shared-link-e2e.mjs"
+      - ".github/workflows/issoire-connect-auth-shared-link-e2e.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shared-link-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate auth patch syntax
+        run: |
+          node --check issoire-connect/app/auth-flow-patch-v40.js
+          grep -q "emailRedirectTo:redirectUrl()" issoire-connect/app/auth-flow-patch-v40.js
+          grep -q "resendIcSignupConfirmation" issoire-connect/app/auth-flow-patch-v40.js
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local site
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ic-auth-http.log 2>&1 &
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4173/issoire-connect/app/index.html >/dev/null && exit 0; sleep .5; done
+          cat /tmp/ic-auth-http.log; exit 1
+      - name: Test fresh shared link, confirmation and fallback
+        run: node tests/issoire-connect-auth-shared-link-e2e.mjs
