@@ -2,7 +2,7 @@
 if(typeof window==='undefined'||typeof S==='undefined'||typeof sb==='undefined')return;
 const RADII=[1,5,10,20,50];
 const V={items:[],last:null};
-const e=v=>typeof esc==='function'?esc(String(v??'')):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const e=v=>typeof esc==='function'?esc(String(v??'')):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
 const logged=()=>!!S.session;
 const pro360=()=>typeof window.icHasPro360==='function'?window.icHasPro360():S.profile?.role==='admin'||['pro','proplus'].includes(S.subscription?.plan||'');
 function radiusOptions(value=20,zero=false){const vals=zero?[0,...RADII]:RADII;return vals.map(x=>`<option value="${x}" ${Number(value)===x?'selected':''}>${x===0?'Toutes distances':x+' km'}</option>`).join('')}
@@ -51,8 +51,9 @@ window.saveIcProspectV40=async function(i){
  const {error}=await sb.from('sd_prospect_pipeline').upsert(payload,{onConflict:'user_id,prospect_key'});if(error)return say(error.message);say('Prospect ajouté au suivi commercial.');
 };
 
-// Route every visible "Radar Prospects" action to the secured V40 engine.
-document.addEventListener('click',ev=>{const el=ev.target?.closest?.('button,a');if(!el)return;const t=(el.textContent||'').replace(/\s+/g,' ').trim();if(/Radar Prospects/i.test(t)&&!el.closest('.modalback')){ev.preventDefault();ev.stopImmediatePropagation();openIcProspectRadarV40()}},true);
+// Route legacy visible "Radar Prospects" entry points to the secured V40 engine.
+// Do not intercept the actual launch button: it must execute runIcProspectRadarV40().
+document.addEventListener('click',ev=>{const el=ev.target?.closest?.('button,a');if(!el||el.id==='icV40Run')return;const t=(el.textContent||'').replace(/\s+/g,' ').trim();if(/Radar Prospects/i.test(t)&&!el.closest('.modalback')){ev.preventDefault();ev.stopImmediatePropagation();openIcProspectRadarV40()}},true);
 
 // Keep the V40 entry point visible in the professional dashboard.
 const basePro=typeof proAccount==='function'?proAccount:null;
