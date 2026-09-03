@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate V48 syntax
+      - name: Validate V48 feature syntax
         run: |
           node --check issoire-connect/app/transaction-experience-v48.js
           node --check tests/issoire-connect-v48-transaction-experience-e2e.mjs
@@ -29,20 +29,20 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Wait for public V48
+      - name: Wait for public loader containing V48 feature
         run: |
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
-            BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?v48=${GITHUB_SHA}" 2>/dev/null || true)
-            if echo "$BODY" | grep -q 'transaction-experience-v48.js?v=48.0'; then
-              echo 'Public V48 detected.'
+            BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?v48-feature=${GITHUB_SHA}" 2>/dev/null || true)
+            if echo "$BODY" | grep -q 'transaction-experience-v48.js?v='; then
+              echo 'V48 transaction feature detected in public loader.'
               exit 0
             fi
             sleep 5
           done
-          echo 'Public V48 was not detected in time.'
+          echo 'V48 transaction feature was not detected in public loader in time.'
           exit 1
-      - name: Run V48 browser E2E
+      - name: Run V48 feature browser E2E
         env:
           IC_APP: https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html
         run: timeout 240s node tests/issoire-connect-v48-transaction-experience-e2e.mjs
