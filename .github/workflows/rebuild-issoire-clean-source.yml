@@ -24,6 +24,7 @@ on:
       - issoire-connect/app/admin-owner-v45.js
       - issoire-connect/app/reliability-v46.js
       - issoire-connect/app/reviews-messaging-v47-patch.js
+      - issoire-connect/app/business-modal-v47-fix.js
   workflow_dispatch:
 
 permissions:
@@ -45,7 +46,7 @@ jobs:
           SRC="issoire-connect/app"
           mkdir -p "$OUT"
 
-          for f in pro-edit-patch.js auth-flow-patch-v40.js mobile-pro-services-v40.js functional-audit-fix-v41.js ui-consolidation-v42.js agenda-v43.js admin-users-v44.js admin-owner-v45.js reliability-v46.js reviews-messaging-v47-patch.js; do
+          for f in pro-edit-patch.js auth-flow-patch-v40.js mobile-pro-services-v40.js functional-audit-fix-v41.js ui-consolidation-v42.js agenda-v43.js admin-users-v44.js admin-owner-v45.js reliability-v46.js reviews-messaging-v47-patch.js business-modal-v47-fix.js; do
             node --check "$SRC/$f"
           done
 
@@ -92,6 +93,7 @@ jobs:
             admin-owner-v45.js
             reliability-v46.js
             reviews-messaging-v47-patch.js
+            business-modal-v47-fix.js
           )
 
           : > "$OUT/app-v40.bundle.js"
@@ -120,7 +122,7 @@ jobs:
           cp "$SRC/icon.svg" "$OUT/icon.svg"
 
           cat > "$OUT/sw.js" <<'SW'
-          const CACHE='issoire-connect-v47-clean-1';
+          const CACHE='issoire-connect-v47-clean-2';
           const CORE=['./','./index.html','./app-v40.bundle.js','./manifest.webmanifest','./icon.svg'];
           self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
           self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
@@ -133,10 +135,10 @@ jobs:
           cat > "$OUT/README.txt" <<'TXT'
           Issoire Connect V47 - source consolidee
 
-          Cette version est reconstruite a partir du HTML V3 compresse et regroupe les scripts fonctionnels dans un bundle unique, dans leur ordre d'execution historique, jusqu'a reviews-messaging-v47-patch.js.
+          Cette version est reconstruite a partir du HTML V3 compresse et regroupe les scripts fonctionnels dans un bundle unique, dans leur ordre d'execution historique, jusqu'au correctif business-modal-v47-fix.js.
           Elle sert aussi de solution de repli pour les navigateurs qui ne prennent pas en charge DecompressionStream.
 
-          V47 conserve les garde-fous V46 et ajoute les avis/recommandations ainsi que la messagerie regroupee en conversations.
+          V47 conserve les garde-fous V46 et ajoute les avis/recommandations, la messagerie regroupee en conversations et la reouverture fiable des fiches entreprise apres authentification.
 
           Fichiers principaux :
           - base.html : HTML V3 decompresse, lisible
@@ -163,6 +165,7 @@ jobs:
           grep -q 'window.icOwnerAdminV45' issoire-connect/app-clean/app-v40.bundle.js
           grep -q 'window.icV46Reliability' issoire-connect/app-clean/app-v40.bundle.js
           grep -q 'window.icV47' issoire-connect/app-clean/app-v40.bundle.js
+          grep -q 'window.icV47BusinessModalFix' issoire-connect/app-clean/app-v40.bundle.js
           echo "Clean V47 source validated."
 
       - name: Upload clean source artifact
