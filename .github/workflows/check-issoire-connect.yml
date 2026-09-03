@@ -41,7 +41,7 @@ jobs:
           grep -q "openIcServiceV40" issoire-connect/app/mobile-pro-services-v40.js
           grep -q "Particuliers + professionnels" issoire-connect/app/mobile-pro-services-v40.js
           grep -q "openIcLegal" issoire-connect/app/legal-v40.js
-          grep -q "informations d’identification de l’éditeur" issoire-connect/confidentialite.html
+          grep -q "Version de pré-lancement" issoire-connect/confidentialite.html
           grep -q "Pro Local — 4,99 € / mois" issoire-connect/cgv-pro.html
           grep -q "Pro 360 — 19,99 € / mois" issoire-connect/cgv-pro.html
           grep -q "addEventListener('push'" issoire-connect/app/sw.js
