@@ -1,0 +1,76 @@
+name: Build Issoire Connect Android
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - issoire-connect/android/**
+      - .github/workflows/issoire-connect-android.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK API 36
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Validate Issoire Connect identity and capabilities
+        run: |
+          grep -q "applicationId 'fr.issoireconnect.app'" issoire-connect/android/app/build.gradle
+          grep -q "versionCode 40" issoire-connect/android/app/build.gradle
+          grep -q 'android:label="Issoire Connect"' issoire-connect/android/app/src/main/AndroidManifest.xml
+          grep -q 'ACCESS_FINE_LOCATION' issoire-connect/android/app/src/main/AndroidManifest.xml
+          grep -q 'setGeolocationEnabled(true)' issoire-connect/android/app/src/main/java/fr/issoireconnect/app/MainActivity.java
+          grep -q '/signal-deal/issoire-connect/app/' issoire-connect/android/app/src/main/java/fr/issoireconnect/app/MainActivity.java
+          ! grep -q 'ZoneProspect' issoire-connect/android/app/src/main/java/fr/issoireconnect/app/MainActivity.java
+
+      - name: Build test APK and unsigned release AAB
+        working-directory: issoire-connect/android
+        run: gradle --no-daemon --stacktrace clean assembleDebug bundleRelease
+
+      - name: Verify APK
+        run: |
+          APK="issoire-connect/android/app/build/outputs/apk/debug/app-debug.apk"
+          AAB="issoire-connect/android/app/build/outputs/bundle/release/app-release.aab"
+          test -s "$APK"
+          test -s "$AAB"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee /tmp/issoire-connect-badging.txt
+          grep -q "package: name='fr.issoireconnect.app.debug' versionCode='40'" /tmp/issoire-connect-badging.txt
+          grep -q "application-label:'Issoire Connect'" /tmp/issoire-connect-badging.txt
+          grep -q "targetSdkVersion:'36'" /tmp/issoire-connect-badging.txt
+
+      - name: Upload installable test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: issoire-connect-v40-android-apk
+          path: issoire-connect/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload unsigned release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: issoire-connect-v40-release-aab-unsigned
+          path: issoire-connect/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
