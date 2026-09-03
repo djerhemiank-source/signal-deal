@@ -53,18 +53,15 @@ try{
   await page.locator('#authPass').fill(PASS);
   await page.locator('#authGo').click();
   await page.waitForFunction(()=>!!S.session,null,{timeout:20000});
-  console.log('PASS login');
-
-  const before=await page.evaluate(id=>({
-    publicCount:(S.businesses||[]).filter(b=>b.id===id).length,
-    myCount:(S.myBusinesses||[]).filter(b=>b.id===id).length,
-    publicName:(S.businesses||[]).find(b=>b.id===id)?.name||null,
-    ownerKnown:(S.businesses||[]).find(b=>b.id===id)?.owner_id!==undefined,
-    modalHidden:document.getElementById('modal')?.classList.contains('hidden'),
-    modalText:(document.getElementById('modalBody')?.innerText||'').slice(0,120),
-    hotfix:window.icV47BusinessModalFix?.version||null
-  }),BUSINESS);
-  console.log('DIAG before reopen',JSON.stringify(before));
+  await page.waitForFunction(()=>{
+    const modal=document.getElementById('modal');
+    const main=document.getElementById('main');
+    if(!modal||!main)return false;
+    const authGone=modal.classList.contains('hidden')&&!/Connexion à Issoire Connect/i.test(main.innerText||'');
+    const accountReady=/Tableau de bord Pro|Mon compte|Bonjour/i.test(main.innerText||'');
+    return authGone&&accountReady;
+  },null,{timeout:20000});
+  console.log('PASS login complete');
 
   const after=await page.evaluate(async id=>{
     const r=window.viewBusiness(id);
@@ -72,16 +69,14 @@ try{
     await new Promise(resolve=>setTimeout(resolve,500));
     return {
       publicCount:(S.businesses||[]).filter(b=>b.id===id).length,
-      publicName:(S.businesses||[]).find(b=>b.id===id)?.name||null,
       modalHidden:document.getElementById('modal')?.classList.contains('hidden'),
-      modalClass:document.getElementById('modal')?.className||null,
-      modalText:(document.getElementById('modalBody')?.innerText||'').slice(0,180),
       reviewVisible:!!document.getElementById('ic47ReviewSection')&&getComputedStyle(document.getElementById('ic47ReviewSection')).display!=='none'&&getComputedStyle(document.getElementById('modal')).display!=='none'
     };
   },BUSINESS);
-  console.log('DIAG after reopen',JSON.stringify(after));
   assert.equal(after.modalHidden,false,'La fiche entreprise doit rouvrir le modal après connexion');
   assert.equal(after.publicCount,1,'La fiche doit être synchronisée dans S.businesses');
+  assert.equal(after.reviewVisible,true,'Le bloc avis doit rester visible après authentification complète');
+  console.log('PASS post-login business reopen');
 
   await waitReviews();
   await page.locator('#ic47ReviewSection button',{hasText:/Donner mon avis|Modifier mon avis/}).click();
