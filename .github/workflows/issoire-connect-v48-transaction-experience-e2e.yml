@@ -1,0 +1,48 @@
+name: Issoire Connect V48 Transaction Experience E2E
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "issoire-connect/app/index.html"
+      - "issoire-connect/app/transaction-experience-v48.js"
+      - "issoire-connect/app/sw.js"
+      - "issoire-connect/app-clean/**"
+      - "tests/issoire-connect-v48-transaction-experience-e2e.mjs"
+      - ".github/workflows/issoire-connect-v48-transaction-experience-e2e.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  transaction-experience-v48:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate V48 syntax
+        run: |
+          node --check issoire-connect/app/transaction-experience-v48.js
+          node --check tests/issoire-connect-v48-transaction-experience-e2e.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Wait for public V48
+        run: |
+          URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
+          for i in {1..60}; do
+            BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?v48=${GITHUB_SHA}" 2>/dev/null || true)
+            if echo "$BODY" | grep -q 'transaction-experience-v48.js?v=48.0'; then
+              echo 'Public V48 detected.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Public V48 was not detected in time.'
+          exit 1
+      - name: Run V48 browser E2E
+        env:
+          IC_APP: https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html
+        run: timeout 240s node tests/issoire-connect-v48-transaction-experience-e2e.mjs
