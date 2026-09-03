@@ -22,15 +22,20 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Wait for public app
+      - name: Wait for public V40.2 app
         run: |
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
-            curl -fsSL -H 'Cache-Control: no-cache' "$URL?proactions=${GITHUB_SHA}" >/dev/null && exit 0
+            BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?proactions=${GITHUB_SHA}" 2>/dev/null || true)
+            if echo "$BODY" | grep -q 'v40-core-patch.js?v=40.2' && echo "$BODY" | grep -q 'radar-prospects-mobile-fix-v40.js?v=40.2'; then
+              echo 'Public V40.2 detected.'
+              exit 0
+            fi
             sleep 5
           done
+          echo 'Public V40.2 was not detected in time.'
           exit 1
       - name: Test prestation, avantage and Radar Prospects
         env:
           IC_APP: https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html
-        run: node tests/issoire-connect-pro-actions-e2e.mjs
+        run: timeout 180s node tests/issoire-connect-pro-actions-e2e.mjs
