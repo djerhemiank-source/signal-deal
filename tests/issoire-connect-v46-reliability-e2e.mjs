@@ -52,7 +52,7 @@ try{
     window.icV46Reliability.syncReservationButtons(document);
     return {text:btn.textContent,disabled:btn.disabled,onclick:btn.getAttribute('onclick')||''};
   },NON_RESERVABLE_OFFER);
-  assert.notMatch(reservation.text,/^Réserver$/i,'Un faux bouton Réserver reste visible');
+  assert.doesNotMatch(reservation.text,/^Réserver$/i,'Un faux bouton Réserver reste visible');
   assert(/Voir le professionnel|Réservation indisponible/i.test(reservation.text),'Le CTA de secours est incorrect');
   console.log('PASS non-reservable offer guard',reservation.text);
 
