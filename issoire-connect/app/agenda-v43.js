@@ -66,7 +66,6 @@ function decoratePublicEvents(){
  }
 }
 
-// Entrée Accueil : on ajoute Agenda sans recréer d’autres doublons.
 window.menu=function(){
  const items=[['🏢','Entreprises & commerces','businesses'],['🔥','Bons plans','deals'],['💼','Emplois','jobs'],['📣','Annonces & besoins','classifieds'],['🗓️','Mon agenda','agenda'],['📅','Événements','events'],['📍','Autour de moi','nearby']];
  return `<div class="gridmenu">${items.map(x=>`<button class="tile" onclick="go('${x[2]}')"><span>${x[0]}</span><b>${x[1]}</b></button>`).join('')}</div>`;
@@ -81,6 +80,10 @@ if(typeof baseGo==='function')window.go=function(page,...args){
  return r;
 };
 
-setTimeout(()=>{if(S.page==='agenda')renderIcAgenda();if(S.page==='events')decoratePublicEvents()},250);
+setTimeout(()=>{
+ if(S.page==='home'&&typeof homePage==='function')homePage();
+ if(S.page==='agenda')renderIcAgenda();
+ if(S.page==='events')decoratePublicEvents();
+},250);
 window.icAgenda={version:'43.0',load:loadAgenda,render:window.renderIcAgenda};
 })();
