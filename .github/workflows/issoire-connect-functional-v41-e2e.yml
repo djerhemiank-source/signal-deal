@@ -1,4 +1,4 @@
-name: Issoire Connect Functional V41 E2E
+name: Issoire Connect Functional V46 E2E
 on:
   push:
     branches: ["main"]
@@ -11,7 +11,7 @@ on:
 permissions:
   contents: read
 jobs:
-  functional-v41:
+  functional-v46:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -19,24 +19,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate V41 syntax
-        run: node --check issoire-connect/app/functional-audit-fix-v41.js
+      - name: Validate functional reliability syntax
+        run: |
+          node --check issoire-connect/app/functional-audit-fix-v41.js
+          node --check issoire-connect/app/reliability-v46.js
       - name: Install Chromium
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Wait for public V41
+      - name: Wait for public V46
         run: |
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
-            BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?v41=${GITHUB_SHA}" 2>/dev/null || true)
-            if echo "$BODY" | grep -q 'functional-audit-fix-v41.js?v=41.0'; then
-              echo 'Public V41 detected.'
+            BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?v46=${GITHUB_SHA}" 2>/dev/null || true)
+            if echo "$BODY" | grep -q 'functional-audit-fix-v41.js?v=46.0' && echo "$BODY" | grep -q 'reliability-v46.js?v=46.0'; then
+              echo 'Public V46 detected.'
               exit 0
             fi
             sleep 5
           done
-          echo 'Public V41 was not detected in time.'
+          echo 'Public V46 was not detected in time.'
           exit 1
       - name: Run full browser functional audit
         env:
