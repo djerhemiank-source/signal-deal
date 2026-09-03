@@ -2443,7 +2443,7 @@ if(typeof window==='undefined'||typeof S==='undefined'||typeof sb==='undefined')
 const V='48.0';
 const X={rows:[],loading:null,timer:null};
 const $48=id=>document.getElementById(id);
-const e48=v=>typeof esc==='function'?esc(String(v??'')):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const e48=v=>typeof esc==='function'?esc(String(v??'')):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
 const euro48=v=>{const n=Number(v);return Number.isFinite(n)?n.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}):'—'};
 const dt48=v=>{try{return v?new Date(v).toLocaleString('fr-FR',{dateStyle:'medium',timeStyle:'short'}):'—'}catch{return'—'}};
 const STATUS={pending:'En attente',accepted:'Acceptée',ready:'Prête',completed:'Terminée',cancelled:'Annulée'};
@@ -2477,7 +2477,7 @@ function experienceCard(r){
  const review=r.review_id?`<span class="pill">${r.review_verified?'✅ Avis vérifié':'👤 Avis membre'}${r.review_rating?` · ${Number(r.review_rating)}/5`:''}</span>`:'';
  const deadline=r.reservation_expires_at?`<div class="notice" style="margin-top:9px"><b>🕒 Retrait au plus tard :</b> ${e48(dt48(r.reservation_expires_at))}</div>`:'';
  const actions=[reviewButton(r),agendaButton(r)].filter(Boolean).join('');
- return `<article class="card" style="margin-top:9px;border-left:4px solid ${r.status==='completed'?'#188650':'#f47721'}"><div class="row between" style="gap:10px;align-items:flex-start"><div><span class="pill">${e48(typeLabel(r.order_type))}</span><h3 style="margin:7px 0 2px">${e48(r.business_name||'Professionnel')}</h3><div class="muted">${e48(r.item_label||r.business_category||'Transaction Issoire Connect')}</div></div><div style="text-align:right"><span class="status ${e48(r.status)}">${e48(statusLabel(r.status))}</span><div class="muted" style="margin-top:4px">${e48(dt48(r.updated_at))}</div></div></div>${Number(r.total)>0?`<div class="price" style="margin-top:8px">${e48(euro48(r.total))}</div>`:''}${deadline}<div style="margin-top:8px">${review}</div>${actions?`<div class="actions" style="margin-top:10px">${actions}</div>`:''}</article>`;
+ return `<article class="card" data-ic-order="${e48(r.order_id)}" style="margin-top:9px;border-left:4px solid ${r.status==='completed'?'#188650':'#f47721'}"><div class="row between" style="gap:10px;align-items:flex-start"><div><span class="pill">${e48(typeLabel(r.order_type))}</span><h3 style="margin:7px 0 2px">${e48(r.business_name||'Professionnel')}</h3><div class="muted">${e48(r.item_label||r.business_category||'Transaction Issoire Connect')}</div></div><div style="text-align:right"><span class="status ${e48(r.status)}">${e48(statusLabel(r.status))}</span><div class="muted" style="margin-top:4px">${e48(dt48(r.updated_at))}</div></div></div>${Number(r.total)>0?`<div class="price" style="margin-top:8px">${e48(euro48(r.total))}</div>`:''}${deadline}<div style="margin-top:8px">${review}</div>${actions?`<div class="actions" style="margin-top:10px">${actions}</div>`:''}</article>`;
 }
 
 async function renderAccountExperience(){
@@ -2498,6 +2498,23 @@ async function renderAccountExperience(){
    const completed=useful.filter(r=>r.can_review).length;
    host.innerHTML=`<div class="sectionhead" style="margin-top:0"><div><span class="pill">✅ APRÈS VOTRE TRANSACTION</span><h2 style="margin-top:7px">Achats, réservations & avis vérifiés</h2><p>${completed?`${completed} expérience(s) terminée(s) peuvent donner lieu à un avis vérifié.`:'Retrouvez ici les actions utiles liées à vos réservations.'}</p></div></div><div class="notice"><b>Un avis n’est “vérifié” qu’après une transaction réellement marquée Terminée.</b><br>Une réservation avec date limite de retrait peut aussi être ajoutée à votre agenda privé.</div><div class="cards" style="margin-top:10px">${useful.map(experienceCard).join('')}</div>`;
  }catch(err){host.innerHTML=`<div class="notice"><b>Impossible de charger le suivi de vos transactions.</b><br>${e48(err?.message||err)}</div>`}
+}
+
+async function focusOrder(orderId){
+ if(!S.session)return false;
+ if(S.page!=='account'&&typeof go==='function')go('account');
+ for(let i=0;i<12;i++){
+   if(S.page==='account')await renderAccountExperience();
+   const card=[...document.querySelectorAll('[data-ic-order]')].find(el=>String(el.dataset.icOrder)===String(orderId));
+   if(card){
+     card.scrollIntoView({behavior:'smooth',block:'center'});
+     const old=card.style.boxShadow;card.style.boxShadow='0 0 0 3px rgba(244,119,33,.35),0 10px 30px rgba(18,61,115,.15)';
+     setTimeout(()=>{card.style.boxShadow=old},2600);
+     return true;
+   }
+   await new Promise(r=>setTimeout(r,180));
+ }
+ return false;
 }
 
 function scheduleAccountExperience(delay=120){
@@ -2572,6 +2589,6 @@ if(main){
 }
 setTimeout(()=>{if(S.page==='account')scheduleAccountExperience(0)},300);
 
-window.icV48={version:V,loadExperience,renderAccountExperience,statusLabel,typeLabel};
+window.icV48={version:V,loadExperience,renderAccountExperience,focusOrder,statusLabel,typeLabel};
 })();
 
