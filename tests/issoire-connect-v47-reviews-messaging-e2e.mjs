@@ -13,6 +13,16 @@ const page=await context.newPage();
 const pageErrors=[];
 page.on('pageerror',e=>pageErrors.push(String(e)));
 
+async function waitReviews(){
+  await page.locator('#ic47ReviewSection').waitFor({state:'visible',timeout:15000});
+  await page.waitForFunction(()=>{
+    const el=document.getElementById('ic47ReviewSection');
+    if(!el)return false;
+    const t=el.innerText||'';
+    return !/Chargement des avis/i.test(t) && (/AVIS & RECOMMANDATIONS/i.test(t)||/Impossible de charger les avis/i.test(t));
+  },null,{timeout:15000});
+}
+
 async function cleanup(){
   try{
     await page.evaluate(async ({business,marker})=>{
@@ -30,7 +40,7 @@ try{
   console.log('PASS V47 module loaded');
 
   await page.evaluate(id=>viewBusiness(id),BUSINESS);
-  await page.locator('#ic47ReviewSection').waitFor({state:'visible',timeout:15000});
+  await waitReviews();
   const publicReviews=await page.locator('#ic47ReviewSection').innerText();
   assert.match(publicReviews,/AVIS & RECOMMANDATIONS/i);
   assert.match(publicReviews,/Avis vérifié/i);
@@ -46,12 +56,12 @@ try{
   console.log('PASS login');
 
   await page.evaluate(id=>viewBusiness(id),BUSINESS);
-  await page.locator('#ic47ReviewSection').waitFor({state:'visible',timeout:15000});
+  await waitReviews();
   await page.locator('#ic47ReviewSection button',{hasText:/Donner mon avis|Modifier mon avis/}).click();
   await page.locator('#ic47ReviewRating').selectOption('5');
   await page.locator('#ic47ReviewComment').fill(marker);
   await page.locator('button',{hasText:'Publier'}).click();
-  await page.locator('#ic47ReviewSection').waitFor({state:'visible',timeout:15000});
+  await waitReviews();
   const card=page.locator('#ic47ReviewSection article.card').filter({hasText:marker}).first();
   await card.waitFor({state:'visible',timeout:10000});
   const cardText=await card.innerText();
@@ -61,7 +71,7 @@ try{
 
   page.once('dialog',d=>d.accept());
   await card.locator('button',{hasText:'Supprimer'}).click();
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(900);
   const remaining=await page.locator('#ic47ReviewSection article.card').filter({hasText:marker}).count();
   assert.equal(remaining,0,'L’avis E2E n’a pas été supprimé');
   console.log('PASS review delete cleanup');
