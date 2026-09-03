@@ -1,0 +1,36 @@
+name: Issoire Connect Pro Actions E2E
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "issoire-connect/app/**"
+      - "tests/issoire-connect-pro-actions-e2e.mjs"
+      - ".github/workflows/issoire-connect-pro-actions-e2e.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pro-actions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Wait for public app
+        run: |
+          URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
+          for i in {1..60}; do
+            curl -fsSL -H 'Cache-Control: no-cache' "$URL?proactions=${GITHUB_SHA}" >/dev/null && exit 0
+            sleep 5
+          done
+          exit 1
+      - name: Test prestation, avantage and Radar Prospects
+        env:
+          IC_APP: https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html
+        run: node tests/issoire-connect-pro-actions-e2e.mjs
