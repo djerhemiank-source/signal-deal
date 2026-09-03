@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123d73">
+<meta name="description" content="Issoire Connect — commerces, bons plans, invendus, emploi, petites annonces et vie locale à Issoire.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+
+
+<title>Issoire Connect</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--brand:#123d73;--brand2:#256cab;--orange:#f47721;--bg:#f5f7fb;--card:#fff;--ink:#172033;--muted:#697386;--line:#e1e6ee;--green:#188650;--red:#c73737;--shadow:0 10px 32px rgba(23,32,51,.09)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:78px}button,input,textarea,select{font:inherit}button{cursor:pointer}a{color:inherit}
+.top{position:sticky;top:0;z-index:30;height:64px;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:8px max(12px,env(safe-area-inset-left))}
+.brand{display:flex;align-items:center;gap:9px;border:0;background:transparent;color:var(--brand);padding:0}.mark{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-weight:950}.brandtext{font-weight:950;line-height:1}.brandtext small{display:block;font-size:9px;letter-spacing:.18em;margin-top:4px}.topactions{display:flex;gap:7px}.iconbtn{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 10px;min-width:40px}.install{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:800}
+main{max-width:1080px;margin:auto;padding:14px}.hero{border-radius:24px;background:linear-gradient(135deg,#123d73,#2f78b4);color:#fff;padding:24px;box-shadow:var(--shadow)}.hero h1{margin:0;font-size:clamp(30px,7vw,52px);letter-spacing:-1.5px}.hero p{margin:8px 0 17px;opacity:.92;max-width:720px}.searchbar{display:flex;gap:7px;background:#fff;border-radius:15px;padding:7px}.searchbar input{min-width:0;flex:1;border:0;outline:0;padding:10px;color:var(--ink);font-size:16px}.btn{border:1px solid var(--line);background:#fff;border-radius:11px;padding:10px 13px;font-weight:750;color:var(--ink)}.btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}.btn.brand{background:var(--brand);border-color:var(--brand);color:#fff}.btn.green{background:var(--green);border-color:var(--green);color:#fff}.btn.red{background:var(--red);border-color:var(--red);color:#fff}.btn.small{padding:7px 9px;font-size:12px}
+.sectionhead{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:22px 0 10px}.sectionhead h2{font-size:21px;margin:0}.sectionhead p{margin:4px 0 0;color:var(--muted);font-size:13px}.linkbtn{border:0;background:transparent;color:var(--brand);font-weight:850}
+.gridmenu{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.tile{border:1px solid var(--line);background:#fff;border-radius:17px;padding:15px 8px;box-shadow:0 4px 16px rgba(23,32,51,.04);text-align:center}.tile b{display:block;font-size:13px;margin-top:5px}.tile span{font-size:28px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}.card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px;box-shadow:0 5px 18px rgba(23,32,51,.05)}.card h3{margin:4px 0 6px;font-size:17px}.muted{color:var(--muted);font-size:13px}.avatar{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;background:#eaf1f8;font-size:26px;flex:0 0 auto}.row{display:flex;align-items:center;gap:11px}.between{justify-content:space-between}.pill{display:inline-block;font-size:11px;font-weight:800;border-radius:99px;background:#eef3f8;color:var(--brand);padding:5px 8px;margin:2px}.price{font-size:21px;font-weight:950;color:var(--brand)}.old{text-decoration:line-through;color:var(--muted);margin-right:6px}.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.followed{background:#ffe8ec;border-color:#ffc8d1;color:#a51f35}
+.communitystats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.counterbox{background:#fff;border:1px solid var(--line);border-radius:17px;padding:16px;display:flex;align-items:center;gap:12px;box-shadow:0 5px 18px rgba(23,32,51,.05)}.countericon{width:50px;height:50px;border-radius:15px;background:#eaf1f8;display:grid;place-items:center;font-size:27px}.counterbox strong{display:block;font-size:26px;color:var(--brand);line-height:1}.counterbox span{display:block;color:var(--muted);font-size:12px;margin-top:4px}.ad{background:linear-gradient(135deg,#fff0dd,#fff);border:1px solid #ffd3a5;border-radius:17px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:12px}.ad small{display:block;color:#93602c;text-transform:uppercase;letter-spacing:.12em;font-size:9px}
+.tabs{display:flex;gap:7px;overflow:auto;padding-bottom:4px}.tabs button{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 11px}.tabs button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.bottom{position:fixed;bottom:0;left:0;right:0;z-index:35;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}.bottom button{width:min(20%,180px);border:0;background:#fff;color:#596275;padding:9px 3px}.bottom button b{display:block;font-size:10px;margin-top:2px}.bottom button.active{color:var(--brand)}
+.modal{position:fixed;inset:0;background:rgba(10,17,30,.48);z-index:60;display:grid;place-items:end center;padding:0}.modal.hidden,.toast.hidden{display:none}.modalbox{background:#fff;width:min(680px,100%);max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:20px;position:relative}.x{position:absolute;right:12px;top:10px;width:36px;height:36px;border:0;border-radius:50%;background:#f1f3f6}.modalback{position:absolute;left:12px;top:10px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-weight:800}.form{display:grid;gap:10px}.form input,.form select,.form textarea{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;background:#fff}.form label{font-size:12px;font-weight:800}.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.toast{position:fixed;bottom:83px;left:50%;transform:translateX(-50%);z-index:80;background:#172033;color:#fff;border-radius:11px;padding:11px 14px;max-width:90%;box-shadow:var(--shadow)}
+.empty{text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:15px;padding:24px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px}.kpi strong{display:block;font-size:23px}.plan{border:1px solid var(--line);border-radius:16px;padding:15px;background:#fff}.plan.pop{border:2px solid var(--brand)}.plan .amount{font-size:27px;font-weight:950;color:var(--brand)}.plan ul{padding-left:18px;color:var(--muted);font-size:13px;line-height:1.65}.notice{border-left:4px solid var(--orange);background:#fff8ef;padding:12px;border-radius:10px;font-size:13px}.demohero{background:linear-gradient(135deg,#102f59,#18558b);color:#fff;border-radius:18px;padding:18px;margin-bottom:14px}.demohero h2{margin:0 0 6px}.demolist{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.democard{border:1px solid var(--line);background:#fff;border-radius:16px;padding:14px;text-align:left}.democard .big{font-size:30px}.democard h3{margin:5px 0}.demoresult{background:#eff8f3;border:1px solid #cce8d8;border-radius:13px;padding:12px;margin-top:10px}.demoflow{display:grid;gap:8px;margin:12px 0}.demostep{display:flex;gap:10px;align-items:flex-start;background:#f7f9fc;border:1px solid var(--line);border-radius:12px;padding:10px}.demostep b{min-width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:12px}.demoactions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}@media(max-width:650px){.demolist{grid-template-columns:1fr}}.status{font-weight:850}.status.pending{color:#ad6d00}.status.accepted,.status.ready,.status.completed{color:var(--green)}.status.cancelled{color:var(--red)}
+@media(max-width:800px){.cards{grid-template-columns:1fr}.gridmenu{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.top .install span{display:none}}
+@media(min-width:700px){.modal{place-items:center}.modalbox{border-radius:22px;max-height:88vh}.two.compact{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<header class="top">
+<div style="display:flex;align-items:center;gap:7px"><button id="backBtn" class="iconbtn" onclick="goBack()" title="Retour" style="display:none">←</button><button class="brand" onclick="go('home')"><span class="mark">IC</span><span class="brandtext">ISSOIRE<small>CONNECT</small></span></button></div>
+<div class="topactions"><button class="iconbtn" onclick="openDemoHub()" title="Démonstration commerciale">🎯</button><button id="installBtn" class="iconbtn install" onclick="installApp()">⬇️ <span>Installer</span></button><button class="iconbtn" onclick="openNotifications()">🔔</button><button class="iconbtn" onclick="go('account')">👤</button></div>
+</header>
+<main id="main"></main>
+<nav class="bottom">
+<button data-page="home" onclick="go('home')">🏠<b>Accueil</b></button>
+<button data-page="search" onclick="go('search')">🔎<b>Recherche</b></button>
+<button data-page="deals" onclick="go('deals')">🔥<b>Bons plans</b></button>
+<button data-page="favorites" onclick="go('favorites')">❤️<b>Favoris</b></button>
+<button data-page="account" onclick="go('account')">👤<b>Compte</b></button>
+</nav>
+<div id="modal" class="modal hidden"><div class="modalbox"><button class="modalback" onclick="closeModal()">← Retour</button><button class="x" onclick="closeModal()">✕</button><div id="modalBody" style="padding-top:30px"></div></div></div>
+<div id="toast" class="toast hidden"></div>
+<script>
+const SUPABASE_URL="https://eazukvtjxeirbitukueb.supabase.co",SUPABASE_KEY="sb_publishable_OIOSgs39cGT6s34eVuexIA_5bZGmZVj";
+const PAY={essential:"https://buy.stripe.com/test_00w14ob7wajWgGb5K518c03",pro:"https://buy.stripe.com/test_dRm8wQ2B0cs4cpVb4p18c04",proplus:"https://buy.stripe.com/test_00w7sMb7w3VygGb2xT18c05"};
+const HAS_SUPABASE=!!(window.supabase&&window.supabase.createClient);
+const sb=HAS_SUPABASE?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
+const DEMO_OFFLINE=!HAS_SUPABASE;
+const SAVED_GEO=(()=>{try{return JSON.parse(localStorage.getItem("ic_resident_geo")||"null")}catch(e){return null}})();
+const S={page:"home",history:[],session:null,profile:null,businesses:[],products:[],offers:[],jobs:[],ads:[],classifieds:[],events:[],follows:new Set(),myBusinesses:[],myOrders:[],messages:[],location:SAVED_GEO,installPrompt:null,stats:{users:0,pros:0}};
+const $=s=>document.querySelector(s), main=$("#main"), modal=$("#modal"), modalBody=$("#modalBody"), toast=$("#toast");
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const euro=n=>Number(n||0).toLocaleString("fr-FR",{style:"currency",currency:"EUR"});
+function say(t){toast.textContent=t;toast.classList.remove("hidden");setTimeout(()=>toast.classList.add("hidden"),2300)}
+function openModal(h){modalBody.innerHTML=h;modal.classList.remove("hidden")} function closeModal(){modal.classList.add("hidden")}
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+function planLabel(p){return ({free:"Gratuit",essential:"Essentiel 4,99 €",pro:"Pro 9,99 €",proplus:"Pro+ 19,99 €"})[p]||p}
+function iconFor(cat){const t=(cat||"").toLowerCase();if(t.includes("aliment"))return"🥖";if(t.includes("auto"))return"🚗";if(t.includes("service"))return"🧰";if(t.includes("rest"))return"🍽️";if(t.includes("sant"))return"🩺";if(t.includes("beau"))return"💇";return"🏪"}
+function distance(lat1,lon1,lat2,lon2){const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180,a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(a))}
+function businessDistance(b){if(!S.location||b.latitude==null||b.longitude==null)return null;return distance(S.location.lat,S.location.lon,b.latitude,b.longitude)}
+function residentRadius(){return Number(S.profile?.radius_km||localStorage.getItem("ic_resident_radius")||10)}
+function residentCity(){return (S.profile?.city||localStorage.getItem("ic_resident_city")||"").trim()}
+function residentPostal(){return (S.profile?.postal_code||localStorage.getItem("ic_resident_postal")||"").trim()}
+function businessVisibleForResident(b){
+ const d=businessDistance(b),r=residentRadius();
+ if(d!=null)return d<=r;
+ const city=residentCity().toLowerCase(),postal=residentPostal();
+ if(postal&&b.postal_code)return String(b.postal_code)===postal;
+ if(city&&b.city)return String(b.city).toLowerCase()===city;
+ return true;
+}
+function visibleBusinesses(){return S.businesses.filter(businessVisibleForResident)}
+function saveGeoLocal(lat,lon,label){
+ S.location={lat:Number(lat),lon:Number(lon),label:label||""};
+ localStorage.setItem("ic_resident_geo",JSON.stringify(S.location));
+}
+async function geocodeManualLocation(city,postal){
+ const q=[postal,city].filter(Boolean).join(" ");
+ if(!q)throw new Error("Indiquez une ville ou un code postal.");
+ const url=`https://data.geopf.fr/geocodage/search?q=${encodeURIComponent(q)}&index=address&limit=1`;
+ const r=await fetch(url);
+ if(!r.ok)throw new Error("Le service de localisation est indisponible.");
+ const j=await r.json(),f=j?.features?.[0],c=f?.geometry?.coordinates;
+ if(!c||c.length<2)throw new Error("Ville ou code postal introuvable.");
+ return {lat:Number(c[1]),lon:Number(c[0]),label:f?.properties?.label||q};
+}
+async function reverseGeo(lat,lon){
+ try{
+  const url=`https://data.geopf.fr/geocodage/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&index=address&limit=1`;
+  const r=await fetch(url);if(!r.ok)return null;
+  const j=await r.json();return j?.features?.[0]?.properties||null;
+ }catch(e){return null}
+}
+function locationSummary(){
+ const r=residentRadius(),city=residentCity(),postal=residentPostal();
+ if(S.location)return `📍 ${esc(S.location.label||city||"Position enregistrée")} · rayon ${r} km`;
+ if(city||postal)return `📍 ${esc([postal,city].filter(Boolean).join(" "))} · rayon ${r} km`;
+ return `📍 Localisation non renseignée · rayon ${r} km`;
+}
+function requireAuth(next){if(S.session)return true;if(!sb){say("Mode démonstration : connexion réelle disponible quand l’application est en ligne.");return false}authModal(next);return false}
+function updateBackButton(){const b=$("#backBtn");if(b)b.style.display=(S.page!=="home"||S.history.length)?"inline-block":"none"}
+function navActive(){document.querySelectorAll(".bottom button").forEach(b=>b.classList.toggle("active",b.dataset.page===S.page));updateBackButton()}
+function goBack(){
+ if(!modal.classList.contains("hidden")){closeModal();return}
+ if(S.history.length){S.page=S.history.pop();navActive();render();window.scrollTo({top:0,behavior:"smooth"});return}
+ if(S.page!=="home"){S.page="home";navActive();render();window.scrollTo({top:0,behavior:"smooth"});return}
+ if(window.history.length>1)window.history.back();
+}
+async function fetchAllBusinesses(){
+ const all=[];
+ for(let from=0;;from+=1000){
+  const r=await sb.from("ic_businesses").select("*").eq("is_active",true).order("name",{ascending:true}).range(from,from+999);
+  if(r.error){console.error(r.error);break}
+  const rows=r.data||[];all.push(...rows);if(rows.length<1000)break;
+ }
+ return all;
+}
+async function loadPublic(){
+ if(!sb){S.businesses=[];S.products=[];S.offers=[];S.jobs=[];S.classifieds=[];S.events=[];S.ads=[];S.stats={users:0,pros:0};return}
+ const qs=[
+  fetchAllBusinesses(),
+  sb.from("ic_products").select("*").eq("is_active",true).order("created_at",{ascending:false}),
+  sb.from("ic_offers").select("*").eq("is_active",true).order("created_at",{ascending:false}),
+  sb.from("ic_jobs").select("*").eq("is_active",true).order("created_at",{ascending:false}),
+  sb.from("ic_classifieds").select("*").eq("is_active",true).order("created_at",{ascending:false}),
+  sb.from("ic_events").select("*").eq("is_active",true).gte("starts_at",new Date(Date.now()-86400000).toISOString()).order("starts_at"),
+  sb.from("ic_ad_campaigns").select("*").eq("is_active",true).order("created_at",{ascending:false})
+ ];
+ const rs=await Promise.all(qs);S.businesses=rs[0]||[];[S.products,S.offers,S.jobs,S.classifieds,S.events,S.ads]=rs.slice(1).map(r=>r.data||[]);
+ const [u,p]=await Promise.all([
+   sb.from("ic_profiles").select("id",{count:"exact",head:true}),
+   sb.from("ic_businesses").select("id",{count:"exact",head:true}).eq("is_active",true)
+ ]);
+ S.stats.users=u.count||0; S.stats.pros=p.count||0;
+}
+async function loadPrivate(){
+ if(!sb||!S.session){S.follows=new Set();S.myBusinesses=[];S.myOrders=[];S.messages=[];return}
+ await ensureProfile();
+ const uid=S.session.user.id;
+ const [f,b,o,m]=await Promise.all([
+  sb.from("ic_follows").select("business_id").eq("user_id",uid),
+  sb.from("ic_businesses").select("*").eq("owner_id",uid).order("created_at"),
+  sb.from("ic_orders").select("*").order("created_at",{ascending:false}).limit(50),
+  sb.from("ic_messages").select("*").order("created_at",{ascending:false}).limit(100)
+ ]);
+ S.follows=new Set((f.data||[]).map(x=>x.business_id));S.myBusinesses=b.data||[];S.myOrders=o.data||[];S.messages=m.data||[];
+}
+async function ensureProfile(){
+ if(!sb||!S.session)return;
+ const uid=S.session.user.id;let {data}=await sb.from("ic_profiles").select("*").eq("id",uid).maybeSingle();
+ if(!data){const role=S.session.user.user_metadata?.role==="pro"?"pro":"resident";const name=S.session.user.user_metadata?.display_name||S.session.user.email?.split("@")[0]||"Utilisateur";await sb.from("ic_profiles").insert({id:uid,display_name:name,role});({data}=await sb.from("ic_profiles").select("*").eq("id",uid).maybeSingle())}
+ S.profile=data||null;
+ if(S.profile){
+  if(S.profile.city)localStorage.setItem("ic_resident_city",S.profile.city);
+  if(S.profile.postal_code)localStorage.setItem("ic_resident_postal",S.profile.postal_code);
+  if(S.profile.radius_km)localStorage.setItem("ic_resident_radius",String(S.profile.radius_km));
+ }
+}
+async function refresh(){await Promise.all([loadPublic(),loadPrivate()]);render()}
+function go(p){
+ if(p!==S.page){S.history.push(S.page);if(S.history.length>30)S.history.shift()}
+ S.page=p;navActive();render();window.scrollTo({top:0,behavior:"smooth"})
+}
+function render(){navActive();({home:homePage,search:searchPage,deals:dealsPage,favorites:favoritesPage,account:accountPage,businesses:businessesPage,jobs:jobsPage,classifieds:classifiedsPage,events:eventsPage,nearby:nearbyPage}[S.page]||homePage)()}
+function hero(){return `<section class="hero"><h1>Issoire Connect</h1><p>Trouvez, suivez, commandez et échangez avec les commerces et habitants autour d’Issoire.</p><div class="searchbar"><input id="heroQ" placeholder="Que cherchez-vous ? ex. croissant, emploi, vélo..."><button class="btn primary" onclick="heroSearch()">Chercher</button></div></section>`}
+function menu(){const a=[["🛍️","Commerces","businesses"],["🔥","Bons plans","deals"],["🥖","Invendus","deals"],["💼","Emploi","jobs"],["📣","Petites annonces","classifieds"],["📅","Événements","events"],["🤝","Entraide","classifieds"],["📍","Autour de moi","nearby"]];return `<div class="gridmenu">${a.map(x=>`<button class="tile" onclick="go('${x[2]}')"><span>${x[0]}</span><b>${x[1]}</b></button>`).join("")}</div>`}
+function businessCard(b){const d=businessDistance(b),follow=S.follows.has(b.id),official=b.source==="sirene_officiel";return `<article class="card"><div class="row"><div class="avatar">${iconFor(b.category)}</div><div><h3>${esc(b.name)}</h3><div class="muted">${esc(b.category)} · ${d!=null?d.toFixed(1)+" km":esc(b.city||"Issoire")}</div></div></div><p>${esc(b.description||"")}</p><span class="pill">${official?(b.is_claimed?"✓ Fiche revendiquée":"🇫🇷 Répertoire SIRENE"):planLabel(b.plan)}</span><div class="actions"><button class="btn brand" onclick="viewBusiness('${b.id}')">Voir</button><button class="btn ${follow?"followed":""}" onclick="toggleFollow('${b.id}')">${follow?"♥ Suivi":"♡ Suivre"}</button></div></article>`}
+function offerCard(o){const b=S.businesses.find(x=>x.id===o.business_id),pct=o.original_price?Math.round((1-o.sale_price/o.original_price)*100):null;return `<article class="card"><span class="pill">${esc(o.offer_type.replace("_"," "))}</span><h3>${esc(o.title)}</h3><div class="muted">${b?esc(b.name):"Commerce"}${o.quantity!=null?" · "+o.quantity+" restant(s)":""}</div><p>${o.original_price?`<span class="old">${euro(o.original_price)}</span>`:""}<span class="price">${euro(o.sale_price)}</span>${pct?` <span class="pill">-${pct}%</span>`:""}</p><div class="actions"><button class="btn green" onclick="reserveOffer('${o.id}')">Réserver</button>${b?`<button class="btn" onclick="viewBusiness('${b.id}')">Commerce</button>`:""}</div></article>`}
+function homePage(){
+ const near=[...visibleBusinesses()].sort((a,b)=>(businessDistance(a)??999)-(businessDistance(b)??999)).slice(0,3);
+ const last=S.offers.filter(o=>["invendu","derniere_minute","destockage"].includes(o.offer_type)).slice(0,3);
+ const ad=S.ads[0];
+ main.innerHTML=
+   hero()
+   +`<div class="sectionhead"><div><h2>Tout Issoire en quelques secondes</h2><p>Un accès simple aux services utiles autour de vous.</p></div></div>`
+   +menu()
+   +`<div class="communitystats">
+      <div class="counterbox"><div class="countericon">👤</div><div><strong>${S.stats.users.toLocaleString("fr-FR")}</strong><span>utilisateurs inscrits</span></div></div>
+      <div class="counterbox"><div class="countericon">🏪</div><div><strong>${S.stats.pros.toLocaleString("fr-FR")}</strong><span>professionnels présents</span></div></div>
+     </div>`
+   +`<div class="card" style="margin-top:12px">
+      <div class="row between">
+       <div><span class="pill">DÉMONSTRATION</span><h3>Vous êtes professionnel ?</h3><p class="muted">Découvrez en 2 minutes comment Issoire Connect fonctionne pour votre métier.</p></div>
+       <button class="btn brand" onclick="openDemoHub()">🎯 Voir la démo</button>
+      </div>
+     </div>`
+   +(ad?`<div class="sectionhead"><div><h2>À découvrir</h2></div></div>
+      <div class="ad"><div><small>Promotion locale sponsorisée</small><b>${esc(ad.title)}</b></div><button class="btn primary" onclick="viewBusiness('${ad.business_id}')">Voir</button></div>`:"")
+   +`<div class="sectionhead"><div><h2>Près de vous</h2></div><button class="linkbtn" onclick="go('businesses')">Tout voir</button></div>
+     <div class="cards">${near.map(businessCard).join("")||'<div class="empty">Aucun commerce pour le moment.</div>'}</div>
+     <div class="sectionhead"><div><h2>Invendus & dernière minute</h2><p>Moins de gaspillage, plus de bons plans.</p></div><button class="linkbtn" onclick="go('deals')">Voir tout</button></div>
+     <div class="cards">${last.map(offerCard).join("")||'<div class="empty">Aucun invendu actif.</div>'}</div>`;
+}
+function heroSearch(){const q=$("#heroQ")?.value||"";S.page="search";render();setTimeout(()=>{$("#globalQ").value=q;runSearch()},0)}
+let BIZ_SHOW=60;
+function bizCardsHtml(rows){const shown=rows.slice(0,BIZ_SHOW);return `<div class="cards">${shown.map(businessCard).join("")||'<div class="empty">Aucun résultat.</div>'}</div>${rows.length>BIZ_SHOW?`<div style="text-align:center;margin:16px"><button class="btn brand" onclick="showMoreBiz()">Afficher plus (${BIZ_SHOW}/${rows.length})</button></div>`:""}`}
+function businessesPage(){BIZ_SHOW=60;const rows=visibleBusinesses();main.innerHTML=`<div class="sectionhead"><div><h2>Commerces, entreprises & professionnels</h2><p>${rows.length} établissement(s) dans votre zone · données locales et répertoire SIRENE.</p></div></div><div class="searchbar"><input id="bizQ" placeholder="Nom, activité, métier, code APE..."><button class="btn brand" onclick="filterBiz()">Rechercher</button></div><div id="bizCount" class="muted" style="margin-top:8px"></div><div id="bizList" style="margin-top:12px">${bizCardsHtml(rows)}</div>`}
+function currentBizFiltered(){const q=($("#bizQ")?.value||"").trim().toLowerCase(),ids=new Set(S.products.filter(p=>JSON.stringify(p).toLowerCase().includes(q)).map(p=>p.business_id));return !q?visibleBusinesses():visibleBusinesses().filter(b=>JSON.stringify(b).toLowerCase().includes(q)||ids.has(b.id))}
+function filterBiz(){BIZ_SHOW=60;const rows=currentBizFiltered();$("#bizCount").textContent=`${rows.length} résultat(s)`;$("#bizList").innerHTML=bizCardsHtml(rows)}
+function showMoreBiz(){BIZ_SHOW+=60;const rows=currentBizFiltered();$("#bizList").innerHTML=bizCardsHtml(rows)}
+function dealsPage(){main.innerHTML=`<div class="sectionhead"><div><h2>Bons plans</h2><p>Promotions, invendus, déstockage et dernière minute.</p></div></div><div class="tabs">${[["all","Tous"],["invendu","Invendus"],["promotion","Promotions"],["destockage","Déstockage"],["derniere_minute","Dernière minute"]].map((x,i)=>`<button class="${i===0?"active":""}" onclick="filterDeals('${x[0]}',this)">${x[1]}</button>`).join("")}</div><div id="dealList" class="cards" style="margin-top:12px">${S.offers.map(offerCard).join("")||'<div class="empty">Aucune offre active.</div>'}</div>`}
+function filterDeals(t,el){document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));el.classList.add("active");$("#dealList").innerHTML=(t==="all"?S.offers:S.offers.filter(o=>o.offer_type===t)).map(offerCard).join("")||'<div class="empty">Aucune offre.</div>'}
+function jobsPage(){main.innerHTML=`<div class="sectionhead"><div><h2>Emploi local</h2><p>Offres publiées par les entreprises du secteur.</p></div></div><div class="cards">${S.jobs.map(j=>{const b=S.businesses.find(x=>x.id===j.business_id);return `<article class="card"><span class="pill">${esc(j.contract_type)}</span><h3>${esc(j.title)}</h3><div class="muted">${b?esc(b.name):""} · ${esc(j.location)}</div><p>${esc(j.description||"")}</p><div class="actions"><button class="btn brand" onclick="applyJob('${j.id}')">Postuler</button></div></article>`}).join("")||'<div class="empty">Aucune offre d’emploi active.</div>'}</div>`}
+function classifiedsPage(){main.innerHTML=`<div class="sectionhead"><div><h2>Petites annonces & entraide</h2><p>Vente, don, échange, recherche et services locaux.</p></div><button class="btn brand" onclick="newClassified()">+ Publier</button></div><div class="cards">${S.classifieds.map(a=>`<article class="card"><span class="pill">${esc(a.kind)}</span><h3>${esc(a.title)}</h3><div class="price">${a.price!=null?euro(a.price):esc(a.price_label||"")}</div><p>${esc(a.description||"")}</p><div class="muted">📍 ${esc(a.city)}</div><div class="actions"><button class="btn brand" onclick="messageClassified('${a.id}')">Contacter</button></div></article>`).join("")||'<div class="empty">Aucune annonce.</div>'}</div>`}
+function eventsPage(){main.innerHTML=`<div class="sectionhead"><div><h2>Événements locaux</h2></div><button class="btn brand" onclick="newResidentEvent()">+ Publier</button></div><div class="cards">${S.events.map(e=>`<article class="card"><h3>${esc(e.title)}</h3><div class="muted">📅 ${new Date(e.starts_at).toLocaleString("fr-FR")}<br>📍 ${esc(e.place)}</div><p>${esc(e.description||"")}</p></article>`).join("")||'<div class="empty">Aucun événement à venir.</div>'}</div>`}
+function favoritesPage(){if(!requireAuth("favorites"))return;const a=S.businesses.filter(b=>S.follows.has(b.id));main.innerHTML=`<div class="sectionhead"><div><h2>Mes favoris</h2><p>Les commerces que vous suivez.</p></div></div><div class="cards">${a.map(businessCard).join("")||'<div class="empty">Vous ne suivez encore aucun commerce.</div>'}</div>`}
+function nearbyPage(){
+ main.innerHTML=`<div class="sectionhead"><div><h2>Autour de moi</h2><p>${locationSummary()}</p></div><button class="btn brand" onclick="openResidentLocation()">⚙️ Ma localisation</button></div><div id="nearList" class="cards">${[...visibleBusinesses()].sort((a,b)=>(businessDistance(a)??999)-(businessDistance(b)??999)).map(businessCard).join("")||'<div class="empty">Aucun commerce dans ce rayon.</div>'}</div>`
+}
+function openResidentLocation(){
+ if(!requireAuth("nearby"))return;
+ const city=esc(S.profile?.city||residentCity()||"Issoire"),postal=esc(S.profile?.postal_code||residentPostal()||"63500"),radius=residentRadius();
+ openModal(`<h2>📍 Ma localisation</h2><p class="muted">Choisissez votre ville et votre rayon de recherche, ou utilisez directement le GPS du téléphone.</p>
+ <div class="form">
+  <label>Ville</label><input id="locCity" value="${city}" placeholder="Issoire">
+  <label>Code postal</label><input id="locPostal" value="${postal}" placeholder="63500" inputmode="numeric">
+  <label>Rayon de recherche</label><select id="locRadius">${[2,5,10,20,30,50].map(k=>`<option value="${k}" ${k===radius?"selected":""}>${k} km</option>`).join("")}</select>
+  <button class="btn brand" onclick="saveManualLocation()">💾 Enregistrer cette zone</button>
+  <button class="btn green" onclick="locateAndSave()">📡 Utiliser ma position GPS</button>
+  <div id="locStatus" class="locationstatus">${locationSummary()}</div>
+ </div>`);
+}
+async function saveManualLocation(){
+ if(!S.session||!sb)return say("Connectez-vous pour enregistrer votre localisation.");
+ const city=$("#locCity").value.trim(),postal=$("#locPostal").value.trim(),radius=Number($("#locRadius").value||10),st=$("#locStatus");
+ st.textContent="Recherche de la localisation…";
+ try{
+  const geo=await geocodeManualLocation(city,postal);
+  saveGeoLocal(geo.lat,geo.lon,geo.label);
+  localStorage.setItem("ic_resident_city",city);localStorage.setItem("ic_resident_postal",postal);localStorage.setItem("ic_resident_radius",String(radius));
+  const {error}=await sb.from("ic_profiles").update({city,postal_code:postal,radius_km:radius,updated_at:new Date().toISOString()}).eq("id",S.session.user.id);
+  if(error)throw error;
+  S.profile={...(S.profile||{}),city,postal_code:postal,radius_km:radius};
+  st.textContent=`✅ ${geo.label} · rayon ${radius} km`;
+  say("Zone habitant enregistrée");
+  setTimeout(()=>{closeModal();S.page="nearby";render()},450);
+ }catch(e){st.textContent="⚠️ "+(e.message||e)}
+}
+async function locateAndSave(){
+ if(!navigator.geolocation)return say("GPS non disponible sur cet appareil.");
+ const radius=Number($("#locRadius")?.value||residentRadius()),st=$("#locStatus");
+ if(st)st.textContent="Recherche de votre position GPS…";
+ navigator.geolocation.getCurrentPosition(async p=>{
+  const lat=p.coords.latitude,lon=p.coords.longitude,info=await reverseGeo(lat,lon);
+  const city=info?.city||info?.municipality||$("#locCity")?.value.trim()||residentCity()||"";
+  const postal=info?.postcode||$("#locPostal")?.value.trim()||residentPostal()||"";
+  const label=info?.label||[postal,city].filter(Boolean).join(" ")||"Position GPS";
+  saveGeoLocal(lat,lon,label);
+  localStorage.setItem("ic_resident_city",city);localStorage.setItem("ic_resident_postal",postal);localStorage.setItem("ic_resident_radius",String(radius));
+  if(S.session&&sb){
+   const {error}=await sb.from("ic_profiles").update({city,postal_code:postal,radius_km:radius,updated_at:new Date().toISOString()}).eq("id",S.session.user.id);
+   if(error){if(st)st.textContent="⚠️ Position trouvée mais profil non enregistré : "+error.message;return}
+   S.profile={...(S.profile||{}),city,postal_code:postal,radius_km:radius};
+  }
+  if(st)st.textContent=`✅ ${label} · rayon ${radius} km`;
+  say("Position GPS enregistrée");
+  setTimeout(()=>{closeModal();S.page="nearby";render()},450);
+ },()=>{if(st)st.textContent="⚠️ Impossible d’obtenir votre position. Autorisez la localisation dans votre navigateur.";},{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+}
+function locate(){openResidentLocation()}
+function searchPage(){main.innerHTML=`<div class="sectionhead"><div><h2>Recherche globale</h2><p>Commerces, produits, offres, emplois, annonces et événements.</p></div></div><div class="searchbar"><input id="globalQ" oninput="runSearch()" placeholder="Tapez ce que vous cherchez..."><button class="btn brand" onclick="runSearch()">Chercher</button></div><div id="searchOut" style="margin-top:12px"></div>`}
+function runSearch(){const q=($("#globalQ").value||"").trim().toLowerCase();if(!q){$("#searchOut").innerHTML='<div class="empty">Commencez à saisir votre recherche.</div>';return}const bs=visibleBusinesses().filter(x=>JSON.stringify(x).toLowerCase().includes(q)),ps=S.products.filter(x=>JSON.stringify(x).toLowerCase().includes(q)),os=S.offers.filter(x=>JSON.stringify(x).toLowerCase().includes(q)),js=S.jobs.filter(x=>JSON.stringify(x).toLowerCase().includes(q)),cs=S.classifieds.filter(x=>JSON.stringify(x).toLowerCase().includes(q)),es=S.events.filter(x=>JSON.stringify(x).toLowerCase().includes(q));$("#searchOut").innerHTML=`<div class="cards">${bs.map(businessCard).join("")}${ps.map(p=>`<article class="card"><span class="pill">${esc(p.kind)}</span><h3>${esc(p.name)}</h3><div class="muted">${esc(S.businesses.find(b=>b.id===p.business_id)?.name||"")}</div><div class="price">${p.price!=null?euro(p.price):esc(p.price_label||"Sur devis")}</div><button class="btn brand small" onclick="orderProduct('${p.id}')">Commander / demander</button></article>`).join("")}${os.map(offerCard).join("")}${js.map(j=>`<article class="card"><span class="pill">Emploi</span><h3>${esc(j.title)}</h3><button class="btn brand small" onclick="applyJob('${j.id}')">Postuler</button></article>`).join("")}${cs.map(c=>`<article class="card"><span class="pill">Annonce</span><h3>${esc(c.title)}</h3><button class="btn brand small" onclick="messageClassified('${c.id}')">Contacter</button></article>`).join("")}${es.map(e=>`<article class="card"><span class="pill">Événement</span><h3>${esc(e.title)}</h3><div class="muted">${new Date(e.starts_at).toLocaleString("fr-FR")}</div></article>`).join("")}</div>`}
+function viewBusiness(id){const b=S.businesses.find(x=>x.id===id);if(!b)return;const prods=S.products.filter(x=>x.business_id===id),offs=S.offers.filter(x=>x.business_id===id),jobs=S.jobs.filter(x=>x.business_id===id),follow=S.follows.has(id);openModal(`<div class="row"><div class="avatar">${iconFor(b.category)}</div><div><h2 style="margin:0">${esc(b.name)}</h2><div class="muted">${esc(b.category)} · ${esc(b.city)}</div></div></div><p>${esc(b.description||"")}</p><div class="actions"><button class="btn ${follow?"followed":""}" onclick="toggleFollow('${id}');viewBusiness('${id}')">${follow?"♥ Suivi":"♡ Suivre ce commerçant"}</button><button class="btn brand" onclick="messageBusiness('${id}')">💬 Message</button>${b.phone?`<a class="btn" href="tel:${esc(b.phone)}">📞 Appeler</a>`:""}</div><div class="sectionhead"><div><h2>Produits & services</h2></div></div>${prods.map(p=>`<div class="card" style="margin:8px 0"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div class="price">${p.price!=null?euro(p.price):esc(p.price_label||"Sur devis")}</div><button class="btn brand small" onclick="orderProduct('${p.id}')">Commander / demander</button></div>`).join("")||'<div class="empty">Pas encore de catalogue.</div>'}<div class="sectionhead"><div><h2>Offres</h2></div></div>${offs.map(offerCard).join("")||'<div class="empty">Aucune offre active.</div>'}${jobs.length?`<div class="sectionhead"><div><h2>Recrutement</h2></div></div>${jobs.map(j=>`<div class="card"><b>${esc(j.title)}</b><div class="muted">${esc(j.contract_type)}</div><button class="btn brand small" onclick="applyJob('${j.id}')">Postuler</button></div>`).join("")}`:""}`)}
+async function toggleFollow(id){if(!requireAuth())return;const uid=S.session.user.id;if(S.follows.has(id)){const {error}=await sb.from("ic_follows").delete().eq("user_id",uid).eq("business_id",id);if(error)return say(error.message);S.follows.delete(id);say("Retiré de vos favoris")}else{const {error}=await sb.from("ic_follows").insert({user_id:uid,business_id:id});if(error)return say(error.message);S.follows.add(id);say("Commerce suivi")}render()}
+async function reserveOffer(id){if(!requireAuth())return;openModal(`<h2>Réserver l’offre</h2><div class="form"><label>Quantité</label><input id="rq" type="number" min="1" max="20" value="1"><label>Message (facultatif)</label><textarea id="rn" rows="3" placeholder="Précision pour le commerçant"></textarea><button class="btn green" onclick="confirmReserve('${id}')">Confirmer la réservation</button></div>`)}
+async function confirmReserve(id){const q=Number($("#rq").value||1),note=$("#rn").value||null;const {error}=await sb.rpc("ic_reserve_offer",{p_offer_id:id,p_quantity:q,p_note:note});if(error)return say(error.message);closeModal();say("Réservation envoyée au commerçant");await refresh()}
+function orderProduct(id){if(!requireAuth())return;const p=S.products.find(x=>x.id===id);openModal(`<h2>${p?.price!=null?"Commander":"Demander un devis"}</h2><p><b>${esc(p?.name||"")}</b></p><div class="form"><label>Quantité</label><input id="pq" type="number" min="1" max="50" value="1"><label>Message</label><textarea id="pn" rows="3" placeholder="Vos précisions"></textarea><button class="btn brand" onclick="confirmProduct('${id}')">Envoyer</button></div>`)}
+async function confirmProduct(id){const {error}=await sb.rpc("ic_order_product",{p_product_id:id,p_quantity:Number($("#pq").value||1),p_note:$("#pn").value||null});if(error)return say(error.message);closeModal();say("Demande envoyée");await loadPrivate()}
+function applyJob(id){if(!requireAuth())return;openModal(`<h2>Postuler</h2><div class="form"><textarea id="jobMsg" rows="5" placeholder="Présentez-vous brièvement"></textarea><button class="btn brand" onclick="confirmJob('${id}')">Envoyer ma candidature</button></div>`)}
+async function confirmJob(id){const {error}=await sb.from("ic_job_applications").insert({job_id:id,applicant_id:S.session.user.id,message:$("#jobMsg").value||null});if(error)return say(error.message);closeModal();say("Candidature envoyée")}
+function messageBusiness(id){if(!requireAuth())return;openModal(`<h2>Envoyer un message</h2><div class="form"><textarea id="msgBody" rows="5" placeholder="Votre message"></textarea><button class="btn brand" onclick="sendMessageBusiness('${id}')">Envoyer</button></div>`)}
+async function sendMessageBusiness(id){const {error}=await sb.rpc("ic_send_message",{p_body:$("#msgBody").value,p_business_id:id,p_classified_id:null});if(error)return say(error.message);closeModal();say("Message envoyé");await loadPrivate()}
+function messageClassified(id){if(!requireAuth())return;openModal(`<h2>Contacter l’annonceur</h2><div class="form"><textarea id="msgBody" rows="5" placeholder="Votre message"></textarea><button class="btn brand" onclick="sendMessageClassified('${id}')">Envoyer</button></div>`)}
+async function sendMessageClassified(id){const {error}=await sb.rpc("ic_send_message",{p_body:$("#msgBody").value,p_business_id:null,p_classified_id:id});if(error)return say(error.message);closeModal();say("Message envoyé");await loadPrivate()}
+function newClassified(){if(!requireAuth())return;openModal(`<h2>Nouvelle petite annonce</h2><div class="form"><label>Type</label><select id="ck"><option value="vente">Vente</option><option value="don">Don</option><option value="echange">Échange</option><option value="recherche">Recherche</option><option value="service">Service</option><option value="immobilier">Immobilier</option></select><label>Titre</label><input id="ct"><label>Description</label><textarea id="cd" rows="4"></textarea><label>Prix (€) — laisser vide si gratuit/à convenir</label><input id="cp" type="number" step=".01"><button class="btn brand" onclick="saveClassified()">Publier</button></div>`)}
+async function saveClassified(){const price=$("#cp").value?Number($("#cp").value):null;const {error}=await sb.from("ic_classifieds").insert({user_id:S.session.user.id,kind:$("#ck").value,title:$("#ct").value,description:$("#cd").value,price,city:S.profile?.city||"Issoire"});if(error)return say(error.message);closeModal();say("Annonce publiée");await refresh()}
+function newResidentEvent(){if(!requireAuth())return;openModal(`<h2>Nouvel événement</h2><div class="form"><label>Titre</label><input id="et"><label>Date et heure</label><input id="ed" type="datetime-local"><label>Lieu</label><input id="ep" value="Issoire"><label>Description</label><textarea id="ee" rows="4"></textarea><button class="btn brand" onclick="saveResidentEvent()">Publier</button></div>`)}
+async function saveResidentEvent(){const {error}=await sb.from("ic_events").insert({user_id:S.session.user.id,title:$("#et").value,starts_at:new Date($("#ed").value).toISOString(),place:$("#ep").value,description:$("#ee").value});if(error)return say(error.message);closeModal();say("Événement publié");await refresh()}
+function authModal(next){openModal(`<h2>Connexion à Issoire Connect</h2><div class="tabs"><button id="loginTab" class="active" onclick="authMode('login')">Connexion</button><button id="signupTab" onclick="authMode('signup')">Créer un compte</button></div><div class="form"><div id="nameWrap" style="display:none"><label>Nom</label><input id="authName"></div><label>Email</label><input id="authEmail" type="email"><label>Mot de passe</label><input id="authPass" type="password" placeholder="8 caractères minimum"><div id="roleWrap" style="display:none"><label>Type de compte</label><select id="authRole"><option value="resident">Habitant</option><option value="pro">Professionnel</option></select></div><button id="authGo" class="btn brand" onclick="doAuth('${next||""}')">Se connecter</button><div id="authInfo" class="muted">Compte habitant gratuit.</div></div>`)}
+let AM="login";function authMode(m){AM=m;$("#loginTab").classList.toggle("active",m==="login");$("#signupTab").classList.toggle("active",m==="signup");$("#nameWrap").style.display=m==="signup"?"block":"none";$("#roleWrap").style.display=m==="signup"?"block":"none";$("#authGo").textContent=m==="signup"?"Créer mon compte":"Se connecter";$("#authInfo").textContent=m==="signup"?"Habitant : gratuit. Professionnel : fiche gratuite puis abonnement à partir de 4,99 €/mois.":"Connectez-vous à votre compte."}
+async function doAuth(next){const email=$("#authEmail").value.trim(),password=$("#authPass").value;if(!email||password.length<8)return say("Email et mot de passe de 8 caractères minimum");let r;if(AM==="signup"){r=await sb.auth.signUp({email,password,options:{data:{display_name:$("#authName").value.trim(),role:$("#authRole").value}}})}else r=await sb.auth.signInWithPassword({email,password});if(r.error)return say(r.error.message);if(!r.data.session){$("#authInfo").textContent="Compte créé. Vérifiez votre email si un lien de confirmation vous a été envoyé.";return}S.session=r.data.session;closeModal();await loadPrivate();say("Connecté");if(next)go(next);else go("account")}
+async function logout(){await sb.auth.signOut();S.session=null;S.profile=null;await loadPrivate();say("Déconnecté");go("home")}
+function accountPage(){if(!S.session){main.innerHTML=`<div class="sectionhead"><div><h2>Mon compte</h2><p>Connectez-vous ou créez votre compte.</p></div></div><div class="card"><h3>Habitant</h3><p>Accès gratuit aux commerces, offres, emploi, annonces, événements et favoris.</p><button class="btn brand" onclick="authModal('account')">Connexion / inscription</button></div><div class="sectionhead"><div><h2>Professionnels</h2></div></div>${pricingHtml(false)}`;return}const role=S.profile?.role||"resident";if(role==="pro"||S.myBusinesses.length)proAccount();else residentAccount()}
+function residentAccount(){const ownOrders=S.myOrders.filter(o=>o.buyer_id===S.session.user.id);main.innerHTML=`<div class="sectionhead"><div><h2>Bonjour ${esc(S.profile?.display_name||"")}</h2><p>Votre espace habitant.</p></div><button class="btn" onclick="logout()">Déconnexion</button></div><div class="kpis"><div class="kpi"><span class="muted">Favoris</span><strong>${S.follows.size}</strong></div><div class="kpi"><span class="muted">Commandes</span><strong>${ownOrders.length}</strong></div><div class="kpi"><span class="muted">Messages</span><strong>${S.messages.length}</strong></div><div class="kpi"><span class="muted">Ville</span><strong style="font-size:16px">${esc(S.profile?.city||"Issoire")}</strong></div></div><div class="sectionhead"><div><h2>Ma localisation</h2><p>Elle détermine les commerces, bons plans et services affichés.</p></div></div><div class="locationbox"><div class="row between"><div><b>${locationSummary()}</b><div class="muted">Ville, code postal, rayon et GPS modifiables à tout moment.</div></div><button class="btn brand" onclick="openResidentLocation()">Modifier</button></div></div><div class="sectionhead"><div><h2>Mes commandes / réservations</h2></div></div>${ordersHtml(ownOrders)}<div class="sectionhead"><div><h2>Mes messages</h2></div></div>${messagesHtml()}<div class="sectionhead"><div><h2>Notifications</h2></div></div><div class="card"><p>Recevez les nouvelles offres de vos commerces favoris pendant que l’application est ouverte.</p><button class="btn brand" onclick="askNotifications()">Activer les notifications</button></div><div class="sectionhead"><div><h2>Vous êtes professionnel ?</h2></div></div><div class="card"><button class="btn brand" onclick="becomePro()">Créer mon espace professionnel</button></div>`}
+async function becomePro(){await sb.from("ic_profiles").update({role:"pro",updated_at:new Date().toISOString()}).eq("id",S.session.user.id);await loadPrivate();go("account")}
+
+function maxRadiusForPlan(plan){
+ return ({free:2,essential:5,pro:20,proplus:50})[plan]||2;
+}
+function requiredPlanForRadius(km){
+ if(km<=2)return "free";
+ if(km<=5)return "essential";
+ if(km<=20)return "pro";
+ return "proplus";
+}
+function radiusSelectorHtml(b){
+ const selected=Number(b.visibility_radius_km||2), max=maxRadiusForPlan(b.plan);
+ const radii=[2,5,10,20,30,50];
+ return `<div class="radiusbox">
+   <div class="row between"><div><h3 style="margin:0">📍 Zone de chalandise</h3><div class="muted">Choisissez jusqu’où vos offres et publicités peuvent être mises en avant.</div></div><span class="pill">${selected} km actifs</span></div>
+   <div class="radiuschoices">${radii.map(k=>{
+     const locked=k>max;
+     return `<button class="btn ${k===selected?"selected":""} ${locked?"locked":""}" onclick="${locked?`offerRadiusUpgrade(${k})`:`setBusinessRadius('${b.id}',${k})`}">${locked?"🔒 ":""}${k} km</button>`
+   }).join("")}</div>
+   <div class="radiusnote">Votre forfait ${planLabel(b.plan)} autorise actuellement jusqu’à <b>${max} km</b>.</div>
+  </div>`;
+}
+async function setBusinessRadius(id,km){
+ if(!sb)return say("Mode démo : modification réelle disponible lorsque l’application est en ligne.");
+ const b=S.myBusinesses.find(x=>x.id===id); if(!b)return;
+ const max=maxRadiusForPlan(b.plan);
+ if(km>max)return offerRadiusUpgrade(km);
+ const {error}=await sb.from("ic_businesses").update({visibility_radius_km:km,updated_at:new Date().toISOString()}).eq("id",id);
+ if(error)return say(error.message);
+ say(`Zone de chalandise réglée sur ${km} km`);
+ await loadPrivate(); render();
+}
+function offerRadiusUpgrade(km){
+ const plan=requiredPlanForRadius(km);
+ const names={essential:"Essentiel — 4,99 €",pro:"Pro — 9,99 €",proplus:"Pro+ — 19,99 €"};
+ const maxs={essential:5,pro:20,proplus:50};
+ openModal(`<h2>📍 Étendre votre zone à ${km} km</h2>
+ <p>Ce rayon dépasse votre zone actuelle. Pour toucher davantage d’habitants et d’entreprises, passez au forfait <b>${names[plan]}</b>.</p>
+ <div class="demoresult"><b>${names[plan]}</b><br>Zone de visibilité jusqu’à <b>${maxs[plan]} km</b>.</div>
+ <div class="actions"><button class="btn brand" onclick="closeModal();go('account')">Voir mon abonnement</button><button class="btn" onclick="closeModal()">Plus tard</button></div>`);
+}
+
+function proAccount(){const b=S.myBusinesses[0];if(!b){main.innerHTML=`<div class="sectionhead"><div><h2>Créer votre établissement</h2><p>Votre fiche apparaît ensuite dans Issoire Connect.</p></div><button class="btn" onclick="logout()">Déconnexion</button></div><div class="notice">La fiche de base est créée gratuitement. Les fonctions commerciales se débloquent à partir de 4,99 €/mois.</div><div class="card" style="margin-top:12px"><div class="form"><label>Nom de l’établissement</label><input id="bn"><label>Catégorie</label><input id="bc" placeholder="Boulangerie, services, automobile..."><label>Description</label><textarea id="bd" rows="4"></textarea><label>Adresse</label><input id="ba"><label>Téléphone</label><input id="bp"><button class="btn brand" onclick="createBusiness()">Créer ma fiche</button></div></div>${pricingHtml(true)}`;return}const orders=S.myOrders.filter(o=>S.myBusinesses.some(x=>x.id===o.business_id));const followers="—";main.innerHTML=`<div class="sectionhead"><div><h2>${esc(b.name)}</h2><p>Espace professionnel · ${planLabel(b.plan)}</p></div><button class="btn" onclick="logout()">Déconnexion</button></div><div class="kpis"><div class="kpi"><span class="muted">Produits</span><strong>${S.products.filter(x=>x.business_id===b.id).length}</strong></div><div class="kpi"><span class="muted">Offres</span><strong>${S.offers.filter(x=>x.business_id===b.id).length}</strong></div><div class="kpi"><span class="muted">Commandes</span><strong>${orders.length}</strong></div><div class="kpi"><span class="muted">Messages</span><strong>${S.messages.length}</strong></div></div><div class="sectionhead"><div><h2>Publier</h2></div></div><div class="gridmenu"><button class="tile" onclick="newProduct('${b.id}')"><span>➕</span><b>Produit/service</b></button><button class="tile" onclick="newOffer('${b.id}','promotion')"><span>🔥</span><b>Promotion</b></button><button class="tile" onclick="newOffer('${b.id}','invendu')"><span>🥖</span><b>Invendu</b></button><button class="tile" onclick="newJob('${b.id}')"><span>💼</span><b>Emploi</b></button><button class="tile" onclick="newBusinessEvent('${b.id}')"><span>📅</span><b>Événement</b></button><button class="tile" onclick="newAd('${b.id}')"><span>📣</span><b>Pub locale</b></button></div><div class="sectionhead"><div><h2>Commandes reçues</h2></div></div>${ordersHtml(orders,true)}<div class="sectionhead"><div><h2>Messages</h2></div></div>${messagesHtml()}<div class="sectionhead"><div><h2>Abonnement</h2><p>Les paiements ci-dessous sont actuellement en mode TEST.</p></div></div>${pricingHtml(true,b.plan)}`}
+// continued functions
+function pricingHtml(logged,current){const ref=logged&&S.session?`?client_reference_id=${encodeURIComponent(S.session.user.id)}`:"";const plans=[["essential","Essentiel","4,99 €","Zone jusqu’à 5 km, fiche enrichie, jusqu’à 20 produits/services, 2 promotions et 5 invendus/mois."],["pro","Pro","9,99 €","Zone jusqu’à 20 km, produits et offres illimités, commandes, emploi, événements et outils pro."],["proplus","Pro+","19,99 €","Zone jusqu’à 50 km, tout Pro + campagnes sponsorisées habitants/professionnels et visibilité renforcée."]];return `<div class="cards">${plans.map(p=>`<div class="plan ${p[0]==="pro"?"pop":""}"><h3>${p[1]}</h3><div class="amount">${p[2]} <small>/mois</small></div><p class="muted">${p[3]}</p>${current===p[0]?'<span class="pill">Formule actuelle</span>':logged?`<a class="btn brand" href="${PAY[p[0]]+ref}" target="_blank" rel="noopener">Tester l’abonnement</a>`:'<button class="btn brand" onclick="authModal(\'account\')">Créer un compte pro</button>'}</div>`).join("")}</div>`}
+async function createBusiness(){const {error}=await sb.from("ic_businesses").insert({owner_id:S.session.user.id,name:$("#bn").value,category:$("#bc").value,description:$("#bd").value,address:$("#ba").value,phone:$("#bp").value,city:"Issoire",postal_code:"63500",plan:"free"});if(error)return say(error.message);say("Fiche créée");await refresh()}
+function newProduct(bid){openModal(`<h2>Ajouter un produit ou service</h2><div class="form"><select id="pk"><option value="product">Produit</option><option value="service">Service</option></select><input id="pt" placeholder="Nom"><textarea id="pd" rows="3" placeholder="Description"></textarea><input id="pp" type="number" step=".01" placeholder="Prix (€), vide si sur devis"><input id="pl" placeholder="Texte prix (ex. Sur devis)"><button class="btn brand" onclick="saveProduct('${bid}')">Publier</button></div>`)}
+async function saveProduct(bid){const {error}=await sb.from("ic_products").insert({business_id:bid,kind:$("#pk").value,name:$("#pt").value,description:$("#pd").value,price:$("#pp").value?Number($("#pp").value):null,price_label:$("#pl").value||null});if(error)return say(error.message);closeModal();say("Produit/service publié");await refresh()}
+function newOffer(bid,type){openModal(`<h2>${type==="invendu"?"Publier un invendu":"Créer une promotion"}</h2><div class="form"><input id="ot" placeholder="Titre"><textarea id="od" rows="3" placeholder="Description"></textarea><div class="two"><input id="oo" type="number" step=".01" placeholder="Prix normal"><input id="os" type="number" step=".01" placeholder="Prix remisé"></div><input id="oq" type="number" placeholder="Quantité disponible"><label>Fin / retrait avant</label><input id="oe" type="datetime-local"><button class="btn green" onclick="saveOffer('${bid}','${type}')">Publier</button></div>`)}
+async function saveOffer(bid,type){const end=$("#oe").value?new Date($("#oe").value).toISOString():null;const {error}=await sb.from("ic_offers").insert({business_id:bid,offer_type:type,title:$("#ot").value,description:$("#od").value,original_price:$("#oo").value?Number($("#oo").value):null,sale_price:Number($("#os").value||0),quantity:$("#oq").value?Number($("#oq").value):null,ends_at:end,pickup_deadline:type==="invendu"?end:null});if(error)return say(error.message);closeModal();say("Offre publiée");await refresh()}
+function newJob(bid){openModal(`<h2>Publier une offre d’emploi</h2><div class="form"><input id="jt" placeholder="Intitulé"><select id="jc"><option>CDI</option><option>CDD</option><option>Intérim</option><option>Alternance</option><option>Stage</option><option>Saisonnier</option></select><textarea id="jd" rows="4" placeholder="Description"></textarea><input id="js" placeholder="Salaire / conditions"><button class="btn brand" onclick="saveJob('${bid}')">Publier</button></div>`)}
+async function saveJob(bid){const {error}=await sb.from("ic_jobs").insert({business_id:bid,title:$("#jt").value,contract_type:$("#jc").value,description:$("#jd").value,salary_text:$("#js").value,location:"Issoire"});if(error)return say(error.message);closeModal();say("Offre d’emploi publiée");await refresh()}
+function newBusinessEvent(bid){openModal(`<h2>Publier un événement</h2><div class="form"><input id="bet" placeholder="Titre"><input id="bed" type="datetime-local"><input id="bep" placeholder="Lieu" value="Issoire"><textarea id="bee" rows="4" placeholder="Description"></textarea><button class="btn brand" onclick="saveBusinessEvent('${bid}')">Publier</button></div>`)}
+async function saveBusinessEvent(bid){const {error}=await sb.from("ic_events").insert({business_id:bid,title:$("#bet").value,starts_at:new Date($("#bed").value).toISOString(),place:$("#bep").value,description:$("#bee").value});if(error)return say(error.message);closeModal();say("Événement publié");await refresh()}
+function newAd(bid){openModal(`<h2>Campagne sponsorisée</h2><div class="notice">Réservé à Connect Pro+.</div><div class="form" style="margin-top:10px"><input id="at" placeholder="Titre de la promotion"><input id="au" placeholder="Lien cible (facultatif)"><select id="ad"><option value="10">10 secondes</option><option value="15" selected>15 secondes</option><option value="20">20 secondes</option><option value="30">30 secondes</option></select><button class="btn primary" onclick="saveAd('${bid}')">Lancer la campagne</button></div>`)}
+async function saveAd(bid){const {error}=await sb.from("ic_ad_campaigns").insert({business_id:bid,title:$("#at").value,target_url:$("#au").value||null,duration_seconds:Number($("#ad").value),frequency_minutes:5,ends_at:new Date(Date.now()+7*86400000).toISOString()});if(error)return say(error.message);closeModal();say("Campagne créée");await refresh()}
+function ordersHtml(arr,pro=false){if(!arr.length)return '<div class="empty">Aucune commande ou réservation.</div>';return `<div class="cards">${arr.map(o=>`<article class="card"><div class="row between"><b>${esc(o.order_type)}</b><span class="status ${esc(o.status)}">${esc(o.status)}</span></div><div class="muted">${new Date(o.created_at).toLocaleString("fr-FR")}</div><div class="price">${euro(o.total)}</div>${o.note?`<p>${esc(o.note)}</p>`:""}${pro?`<div class="actions"><button class="btn small" onclick="setOrder('${o.id}','accepted')">Accepter</button><button class="btn green small" onclick="setOrder('${o.id}','ready')">Prête</button><button class="btn small" onclick="setOrder('${o.id}','completed')">Terminée</button><button class="btn red small" onclick="setOrder('${o.id}','cancelled')">Annuler</button></div>`:""}</article>`).join("")}</div>`}
+async function setOrder(id,status){const {error}=await sb.from("ic_orders").update({status,updated_at:new Date().toISOString()}).eq("id",id);if(error)return say(error.message);say("Statut mis à jour");await loadPrivate();render()}
+function messagesHtml(){if(!S.messages.length)return '<div class="empty">Aucun message.</div>';return `<div class="cards">${S.messages.slice(0,12).map(m=>`<article class="card"><div class="muted">${m.sender_id===S.session.user.id?"Envoyé":"Reçu"} · ${new Date(m.created_at).toLocaleString("fr-FR")}</div><p>${esc(m.body)}</p><button class="btn small" onclick="replyMsg('${m.id}')">Répondre</button></article>`).join("")}</div>`}
+function replyMsg(id){openModal(`<h2>Répondre</h2><div class="form"><textarea id="reply" rows="5"></textarea><button class="btn brand" onclick="sendReply('${id}')">Envoyer</button></div>`)}
+async function sendReply(id){const {error}=await sb.rpc("ic_reply_message",{p_message_id:id,p_body:$("#reply").value});if(error)return say(error.message);closeModal();say("Réponse envoyée");await loadPrivate();render()}
+
+const DEMOS=[
+ {id:"bakery",icon:"🥖",name:"Boulangerie Démo",sector:"Boulangerie",plan:"pro",price:"9,99 €",pitch:"Écouler les invendus et fidéliser les clients du quartier.",client:["Un habitant suit la boulangerie","À 18h30, 8 croissants sont publiés à -50 %","L’habitant reçoit l’offre et réserve 4 croissants","La boulangerie voit la réservation dans son tableau de bord"],pro:["Publier un invendu en moins de 30 secondes","Indiquer quantité, prix normal, remise et heure limite","Voir les abonnés, réservations et chiffre généré","Éviter de jeter les produits restants"],result:"Exemple : 8 croissants vendus à 0,60 € au lieu d’être jetés = 4,80 € récupérés + un client qui revient."},
+ {id:"printer",icon:"🖨️",name:"Imprimerie Démo",sector:"Imprimerie",plan:"pro",price:"9,99 €",pitch:"Recevoir des demandes de devis et vendre des prestations locales.",client:["Un entrepreneur cherche « 500 flyers »","L’imprimerie apparaît dans les résultats locaux","Il consulte le tarif et demande un devis","L’imprimeur reçoit la demande et répond"],pro:["Catalogue flyers, cartes de visite et affiches","Promotions ponctuelles","Demandes de devis centralisées","Suivi des vues, contacts et commandes"],result:"Exemple : 1 commande de 500 flyers à 49 € peut déjà rentabiliser plusieurs mois d’abonnement."},
+ {id:"garage",icon:"🚗",name:"Garage Démo",sector:"Automobile",plan:"pro",price:"9,99 €",pitch:"Faire revenir les automobilistes locaux avec des offres simples.",client:["Un habitant cherche « révision voiture »","Il voit le garage à proximité","Il consulte l’offre « Révision à partir de 89 € »","Il envoie une demande de rendez-vous"],pro:["Services et tarifs visibles","Promotions saisonnières","Demandes clients centralisées","Possibilité d’annoncer un créneau de dernière minute"],result:"Exemple : une seule révision obtenue via Issoire Connect rembourse largement l’abonnement mensuel."},
+ {id:"insurance",icon:"🛡️",name:"Assurance Démo",sector:"Assurance",plan:"essential",price:"4,99 €",pitch:"Être visible quand un habitant cherche un devis assurance près de chez lui.",client:["Un habitant cherche « assurance auto »","Il découvre l’agence locale","Il consulte les services","Il envoie une demande de contact/devis"],pro:["Fiche professionnelle complète","Services présentés clairement","Réception de messages","Visibilité locale dans la recherche"],result:"Exemple : à 4,99 €/mois, un seul nouveau client assurance peut financer l’abonnement pendant plusieurs mois."},
+ {id:"bio",icon:"🥕",name:"Magasin Bio Démo",sector:"Commerce alimentaire",plan:"pro",price:"9,99 €",pitch:"Écouler les produits à date courte et faire connaître les arrivages.",client:["L’utilisateur suit le magasin","Un panier légumes est publié à -30 %","Il réserve le panier","Il vient le retirer avant fermeture"],pro:["Invendus et dates courtes","Promotions et nouveautés","Abonnés locaux","Réservations et quantités restantes"],result:"Exemple : 5 paniers à 8 € vendus en dernière minute = 40 € de chiffre récupéré au lieu d’une perte."},
+ {id:"restaurant",icon:"🍽️",name:"Restaurant Démo",sector:"Restaurant",plan:"proplus",price:"19,99 €",pitch:"Remplir les derniers créneaux et promouvoir menus et événements.",client:["Un habitant consulte les bons plans du soir","Il voit un menu dernière minute","Il réserve","Il suit ensuite le restaurant"],pro:["Menu et offres du jour","Dernières places / dernière minute","Événements","Campagne sponsorisée locale"],result:"Exemple : quelques couverts supplémentaires dans le mois suffisent à rentabiliser la formule Pro+."}
+];
+
+function openDemoHub(){
+ openModal(`<div class="demohero"><h2>🎯 Mode démonstration entreprises</h2><p style="margin:0;opacity:.9">Choisissez un métier et montrez au professionnel exactement ce qu’Issoire Connect peut lui apporter. Aucun compte nécessaire.</p>${DEMO_OFFLINE?'<div style="margin-top:10px;padding:8px;border-radius:9px;background:rgba(255,255,255,.14)">📴 Mode démo autonome actif — la présentation fonctionne même sans connexion à la base.</div>':''}</div>
+ <div class="demolist">${DEMOS.map(d=>`<button class="democard" onclick="openDemo('${d.id}')"><div class="big">${d.icon}</div><h3>${d.name}</h3><div class="muted">${d.sector} · exemple ${d.price}/mois</div><p>${d.pitch}</p><span class="pill">Voir la démonstration</span></button>`).join("")}</div>`);
+}
+function openDemo(id){
+ const d=DEMOS.find(x=>x.id===id); if(!d)return;
+ openModal(`<div class="demohero"><h2>${d.icon} ${d.name}</h2><p style="margin:0">${d.pitch}</p></div>
+ <div class="tabs"><button class="active" onclick="demoTab('${id}','client',this)">👤 Vue client</button><button onclick="demoTab('${id}','pro',this)">🏪 Vue professionnel</button><button onclick="demoTab('${id}','plan',this)">💶 Forfait</button></div>
+ <div id="demoContent">${demoClientHtml(d)}</div>
+ <div class="demoactions"><button class="btn" onclick="openDemoHub()">← Autres métiers</button><button class="btn brand" onclick="simulateDemoAction('${id}')">▶ Simuler une action</button></div>`);
+}
+function demoTab(id,tab,el){
+ const d=DEMOS.find(x=>x.id===id); if(!d)return;
+ document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));el.classList.add("active");
+ const box=$("#demoContent");box.innerHTML=tab==="client"?demoClientHtml(d):tab==="pro"?demoProHtml(d):demoPlanHtml(d);
+}
+function demoClientHtml(d){
+ return `<h3>Ce que voit l’habitant</h3><div class="demoflow">${d.client.map((x,i)=>`<div class="demostep"><b>${i+1}</b><div>${esc(x)}</div></div>`).join("")}</div><div class="demoresult"><b>Résultat concret</b><br>${esc(d.result)}</div>`;
+}
+function demoProHtml(d){
+ return `<h3>Ce que fait le professionnel</h3><div class="kpis"><div class="kpi"><span class="muted">Vues</span><strong>324</strong></div><div class="kpi"><span class="muted">Contacts</span><strong>28</strong></div><div class="kpi"><span class="muted">Abonnés</span><strong>128</strong></div><div class="kpi"><span class="muted">Actions</span><strong>17</strong></div></div><div class="demoflow">${d.pro.map((x,i)=>`<div class="demostep"><b>${i+1}</b><div>${esc(x)}</div></div>`).join("")}</div>`;
+}
+function demoPlanHtml(d){
+ const names={essential:"Essentiel",pro:"Pro",proplus:"Pro+"};
+ return `<div class="plan pop"><h3>Connect ${names[d.plan]}</h3><div class="amount">${d.price} <small>/mois</small></div><p>${d.plan==="essential"?"Jusqu’à 5 km : fiche enrichie, produits/services, promotions limitées et visibilité locale.":d.plan==="pro"?"Jusqu’à 20 km : produits/services, promotions et invendus, commandes, devis, emploi et statistiques.":"Jusqu’à 50 km : tout Pro + campagnes sponsorisées habitants/professionnels et visibilité renforcée."}</p><div class="demoresult"><b>Argument simple à présenter :</b><br>« Votre présence locale sur Issoire Connect coûte moins qu’un petit budget publicitaire classique et vous permet d’être trouvé exactement au moment où un habitant cherche votre produit ou service. »</div></div>`;
+}
+function simulateDemoAction(id){
+ const d=DEMOS.find(x=>x.id===id); if(!d)return;
+ const msgs={
+  bakery:"✅ 4 croissants réservés. Quantité restante : 4. Le commerçant voit immédiatement la réservation.",
+  printer:"✅ Nouvelle demande de devis reçue : 500 flyers A5. Le prospect est ajouté aux demandes du professionnel.",
+  garage:"✅ Nouvelle demande de rendez-vous reçue pour une révision automobile.",
+  insurance:"✅ Nouveau prospect local : demande de devis assurance auto.",
+  bio:"✅ 1 panier anti-gaspi réservé. Le stock disponible diminue automatiquement.",
+  restaurant:"✅ 2 places réservées via l’offre dernière minute.",
+  altera:"✅ Nouvelle demande reçue par Altéra Création : accompagnement IA / automatisation pour une entreprise locale."
+ };
+ const msg=msgs[id]||"✅ Action de démonstration effectuée.";
+ let box=document.getElementById("demoLiveResult");
+ if(!box){
+   box=document.createElement("div");
+   box.id="demoLiveResult";
+   box.className="demoresult";
+   box.style.marginTop="12px";
+   const actions=document.querySelector(".demoactions");
+   if(actions)actions.parentNode.insertBefore(box,actions);
+ }
+ box.innerHTML=`<b>Simulation réussie</b><br>${esc(msg)}<br><span class="muted">Ceci est une simulation commerciale : aucune vraie commande n’est créée.</span>`;
+ say("Simulation effectuée");
+}
+
+function openNotifications(){if(!S.session)return authModal();const followed=S.businesses.filter(b=>S.follows.has(b.id));openModal(`<h2>Mes alertes locales</h2><p>Vous suivez <b>${followed.length}</b> commerce(s).</p><p class="muted">Les nouvelles offres de vos favoris peuvent apparaître en temps réel lorsque l’application est ouverte.</p><button class="btn brand" onclick="askNotifications()">Autoriser les notifications du téléphone</button>`)}
+async function askNotifications(){if(!("Notification" in window))return say("Notifications non disponibles");const r=await Notification.requestPermission();say(r==="granted"?"Notifications autorisées":"Notifications non autorisées")}
+function setupRealtime(){if(!sb)return;sb.channel("ic-live").on("postgres_changes",{event:"INSERT",schema:"public",table:"ic_offers"},payload=>{const o=payload.new;if(S.follows.has(o.business_id)){say("🔥 Nouveau bon plan d’un commerce suivi");if(Notification.permission==="granted")new Notification("Issoire Connect",{body:o.title||"Nouvelle offre locale"})}loadPublic().then(()=>render())}).subscribe()}
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();S.installPrompt=e;$("#installBtn").style.display="inline-block"});window.addEventListener("appinstalled",()=>{say("Issoire Connect est installé");S.installPrompt=null});
+async function installApp(){if(S.installPrompt){S.installPrompt.prompt();await S.installPrompt.userChoice;S.installPrompt=null}else openModal(`<h2>Installer Issoire Connect</h2><p><b>Android / Chrome :</b> ouvrez le menu ⋮ puis choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».</p><p><b>iPhone / Safari :</b> bouton Partager puis « Sur l’écran d’accueil ».</p>`)}
+
+if(sb){
+ sb.auth.onAuthStateChange(async(_,session)=>{S.session=session;if(session)await loadPrivate();else{S.profile=null;await loadPrivate()}render()});
+ (async()=>{const {data}=await sb.auth.getSession();S.session=data.session;await Promise.all([loadPublic(),loadPrivate()]);setupRealtime();render()})();
+}else{
+ S.session=null;
+ render();
+ setTimeout(()=>say("Mode démonstration autonome prêt"),500);
+}
+</script>
+</body></html>
