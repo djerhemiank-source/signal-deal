@@ -9,4 +9,5 @@ Fichiers principaux :
 - app-v40.bundle.js : bundle V40 consolide
 - sw.js : cache PWA propre a la version clean
 
+La fiche entreprise Pro complete est validee par node --check avant construction du bundle.
 Etape suivante : tests fonctionnels, puis refactorisation interne du bundle par domaines avant promotion publique.
