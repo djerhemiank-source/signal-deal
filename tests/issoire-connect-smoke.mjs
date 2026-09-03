@@ -25,12 +25,20 @@ async function run(viewport){
  await page.locator('[data-page="search"]').waitFor({state:'visible',timeout:15000});
  await page.locator('.communitystats').waitFor({state:'visible',timeout:20000});
  assert.match(await page.locator('main').innerText(),/Tout Issoire/i,'home did not finish loading');
- await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openReportContent==='function'&&typeof window.openIcPlans==='function'&&typeof window.startIcPlanCheckout==='function'&&typeof window.icHasPro360==='function'&&window.icV42?.version==='42.0',null,{timeout:20000});
+ await page.waitForFunction(()=>typeof window.renderDirectoryPage==='function'&&typeof window.openResidentAdForm==='function'&&typeof window.renderPublicClassifieds==='function'&&typeof window.openReportContent==='function'&&typeof window.openIcPlans==='function'&&typeof window.startIcPlanCheckout==='function'&&typeof window.icHasPro360==='function'&&window.icV42?.version==='42.0'&&window.icAgenda?.version==='43.0',null,{timeout:20000});
 
  const homeText=await page.locator('main').innerText();
  assert.match(homeText,/Annonces & besoins/i,'unified publications entry missing');
+ assert.match(homeText,/Mon agenda/i,'personal agenda entry missing');
  assert.doesNotMatch(homeText,/\bEntraide\b/i,'legacy duplicate Entraide tile still visible');
 
+ await page.evaluate(()=>go('agenda'));
+ await page.waitForFunction(()=>/Mon agenda/i.test(document.querySelector('main')?.innerText||''),null,{timeout:10000});
+ const agendaAnon=await page.locator('main').innerText();
+ assert.match(agendaAnon,/Agenda personnel privé|Vos rendez-vous personnels/i,'agenda anonymous screen missing');
+ assert.match(agendaAnon,/Connexion \/ inscription/i,'agenda login action missing');
+
+ await page.evaluate(()=>go('home'));
  await page.evaluate(()=>openIcPlans());
  await page.locator('.modalback').waitFor({state:'visible',timeout:5000});
  const planText=await page.locator('#modalBody').innerText();
@@ -90,4 +98,4 @@ async function run(viewport){
 }
 const desktop=await run({width:1440,height:900});
 const mobile=await run({width:390,height:844});
-console.log('ISSOIRE CONNECT V42 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
+console.log('ISSOIRE CONNECT V43 SMOKE PASS',JSON.stringify({base:BASE,desktop,mobile}));
