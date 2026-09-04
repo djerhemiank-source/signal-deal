@@ -1,1 +1,1 @@
-Issoire Connect V51 RAPPELS AGENDA — V50 + rappels 30 min / 1 h / 1 jour + moteur cron toutes les 5 min + notifications persistantes + Push téléphone/PC + lien profond vers le rendez-vous + parité Push app-clean — 2026-09-04
+Issoire Connect V52 PUB HABITANT & DÉMOS — V51 + campagnes Pro visibles sur les surfaces Habitant + aperçu Pro « Voir comme un Habitant » + rayons 1 / 5 / 10 / 20 / 50 km + Démo Habitant / Pro 360 / Pub Pro→Habitant partageable sans faux compte + parité app-clean V52 — 2026-09-04
