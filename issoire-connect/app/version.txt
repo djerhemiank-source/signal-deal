@@ -1,1 +1,1 @@
-Issoire Connect V50 PUSH TRANSACTIONS — centre de notifications + statuts Pro sécurisés + réservations agenda + avis vérifiés + Push téléphone/PC des changements de commande/réservation + anti-double-envoi + lien profond vers la transaction — 2026-09-04
+Issoire Connect V51 RAPPELS AGENDA — V50 + rappels 30 min / 1 h / 1 jour + moteur cron toutes les 5 min + notifications persistantes + Push téléphone/PC + lien profond vers le rendez-vous + parité Push app-clean — 2026-09-04
