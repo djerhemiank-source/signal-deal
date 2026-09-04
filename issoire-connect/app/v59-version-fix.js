@@ -1,0 +1,1 @@
+(function(){'use strict';if(typeof targetPage==='function'){const t=targetPage;targetPage=function(){t();if(main?.innerHTML)main.innerHTML=main.innerHTML.replaceAll('V.58','V.59')}}if(typeof campaignsPage==='function'){const c=campaignsPage;campaignsPage=function(){c();if(main?.innerHTML)main.innerHTML=main.innerHTML.replaceAll('V.58','V.59')}}})();
