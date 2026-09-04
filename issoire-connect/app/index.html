@@ -9,7 +9,7 @@ const names=Array.from({length:10},(_,i)=>`v57-${String(i).padStart(2,'0')}.txt`
 for(const n of names){const r=await fetch(n+'?v=59.0-20260905',{cache:'no-store',headers:{'Cache-Control':'no-cache'}});if(!r.ok)throw new Error('Mise à jour incomplète : '+n);packed+=await r.text()}
 let html=await ungzip64(packed);if(!html.includes('APP_VERSION="V.57"')&&!html.includes("APP_VERSION='V.57'"))throw new Error('La base applicative n’a pas été reconnue.');
 html=html.replaceAll('V.57','V.59');
-html=html.replace('</body>','<script src="v58-stability-cloud.js?v=59.0-20260905"><\/script><script src="v59-admin-security.js?v=59.0-20260905"><\/script><script src="v59-version-fix.js?v=59.0-20260905"><\/script></body>');
+html=html.replace('</body>','<script src="v58-stability-cloud.js?v=59.0-20260905"><\/script><script src="v59-admin-security.js?v=59.0-20260905"><\/script><script src="v59-version-fix.js?v=59.0-20260905"><\/script><script src="v59-push-register.js?v=59.0-20260905"><\/script></body>');
 if(!html.includes('APP_VERSION="V.59"')&&!html.includes("APP_VERSION='V.59'"))throw new Error('La V.59 n’a pas été activée.');
 document.open();document.write(html);document.close();
 }catch(e){document.getElementById('msg').textContent='Erreur de chargement : '+e.message;console.error(e)}})();
