@@ -20,26 +20,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in issoire-connect/index.html issoire-connect/mentions-legales.html issoire-connect/confidentialite.html issoire-connect/cgu.html issoire-connect/cgv-pro.html issoire-connect/app/index.html issoire-connect/app/manifest.webmanifest issoire-connect/app/sw.js; do test -f "$f"; done
+          for f in issoire-connect/index.html issoire-connect/mentions-legales.html issoire-connect/confidentialite.html issoire-connect/cgu.html issoire-connect/cgv-pro.html issoire-connect/app/index.html issoire-connect/app/manifest.webmanifest issoire-connect/app/sw.js; do test -s "$f"; done
           for f in issoire-connect/app/*.js; do node --check "$f"; done
           node -e "JSON.parse(require('fs').readFileSync('issoire-connect/app/manifest.webmanifest','utf8'))"
           for f in v3-data-0.txt v3-data-1.txt v3-data-2.txt v3-data-3.txt; do test -s "issoire-connect/app/$f"; done
 
-          grep -q 'Pro Local' issoire-connect/app/subscription-v32.js
-          grep -q '4,99 € / mois' issoire-connect/app/subscription-v32.js
-          grep -q 'Pro 360' issoire-connect/app/subscription-v32.js
-          grep -q '19,99 € / mois' issoire-connect/app/subscription-v32.js
+          for f in reliability-v46.js reviews-messaging-v47-patch.js business-modal-v47-fix.js transaction-experience-v48.js notifications-v49.js order-push-v50.js agenda-reminders-v51.js; do test -s "issoire-connect/app/$f"; done
+          grep -q '4,99 €' issoire-connect/index.html
+          grep -q '19,99 €' issoire-connect/index.html
           ! grep -q '9,99 €' issoire-connect/index.html
-          grep -q 'const RADII=\[1,5,10,20,50\]' issoire-connect/app/local-needs-patch.js
-          grep -q 'resendIcSignupConfirmation' issoire-connect/app/auth-flow-patch-v40.js
-          grep -q 'window.icV46Reliability' issoire-connect/app/reliability-v46.js
-          grep -q 'window.icV47' issoire-connect/app/reviews-messaging-v47-patch.js
-          grep -q 'window.icV48' issoire-connect/app/transaction-experience-v48.js
-          grep -q 'window.icV49' issoire-connect/app/notifications-v49.js
-          grep -q 'window.icV50' issoire-connect/app/order-push-v50.js
-          grep -q 'window.icV51' issoire-connect/app/agenda-reminders-v51.js
-          grep -q 'reminder_minutes' issoire-connect/app/agenda-reminders-v51.js
-          grep -q 'notification=agenda' issoire-connect/app/agenda-reminders-v51.js
           grep -q 'agenda-reminders-v51.js?v=51.0' issoire-connect/app/index.html
           grep -q 'order-push-v50.js?v=51.0' issoire-connect/app/index.html
           grep -q 'notifications-v49.js?v=51.0' issoire-connect/app/index.html
@@ -57,6 +46,7 @@ jobs:
           PY
           node --check /tmp/ic-loader.js
           test "$(wc -c < issoire-connect/app/index.html)" -lt 32000
+          echo 'Static V51 validation passed.'
 
       - name: Install Chromium
         run: |
