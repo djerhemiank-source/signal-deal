@@ -73,3 +73,4 @@ if(typeof main!=='undefined'&&main)observer.observe(main,{childList:true,subtree
 setTimeout(()=>{addPreviewButton();injectResidentAd(false)},800);
 window.icV52Ads={version:V,chooseResidentAd,injectResidentAd,preview:window.previewIcResidentAd};
 })();
+// V52 clean-source regeneration anchor
