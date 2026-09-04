@@ -1,0 +1,50 @@
+name: Issoire Connect V52 Resident Ads Demo E2E
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "issoire-connect/app/index.html"
+      - "issoire-connect/app/resident-ads-v52.js"
+      - "issoire-connect/app/demo-v52.js"
+      - "issoire-connect/app/sw.js"
+      - "issoire-connect/app-clean/**"
+      - "tests/issoire-connect-v52-resident-ads-demo-e2e.mjs"
+      - ".github/workflows/issoire-connect-v52-resident-ads-demo-e2e.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  resident-ads-demo-v52:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate V52 scripts
+        run: |
+          node --check issoire-connect/app/resident-ads-v52.js
+          node --check issoire-connect/app/demo-v52.js
+          node --check tests/issoire-connect-v52-resident-ads-demo-e2e.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Wait for public V52
+        run: |
+          URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
+          for i in {1..60}; do
+            BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?v52=${GITHUB_SHA}" 2>/dev/null || true)
+            if echo "$BODY" | grep -q 'resident-ads-v52.js?v=52.0' && echo "$BODY" | grep -q 'demo-v52.js?v=52.0'; then
+              echo 'Public V52 detected.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Public V52 not detected in time.'
+          exit 1
+      - name: Run V52 browser E2E
+        env:
+          IC_APP: https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html
+        run: timeout 240s node tests/issoire-connect-v52-resident-ads-demo-e2e.mjs
