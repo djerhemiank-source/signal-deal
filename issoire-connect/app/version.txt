@@ -1,1 +1,1 @@
-Issoire Connect V48 TRANSACTION — statuts Pro sécurisés + réservations dans l’agenda + avis vérifiés après transaction terminée + parcours post-achat — 2026-09-03
+Issoire Connect V50 PUSH TRANSACTIONS — centre de notifications + statuts Pro sécurisés + réservations agenda + avis vérifiés + Push téléphone/PC des changements de commande/réservation + anti-double-envoi + lien profond vers la transaction — 2026-09-04
