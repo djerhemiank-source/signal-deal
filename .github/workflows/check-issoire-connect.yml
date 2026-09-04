@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Static V51 validation
+      - name: Static V52 validation
         shell: bash
         run: |
           set -euo pipefail
@@ -25,15 +25,23 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('issoire-connect/app/manifest.webmanifest','utf8'))"
           for f in v3-data-0.txt v3-data-1.txt v3-data-2.txt v3-data-3.txt; do test -s "issoire-connect/app/$f"; done
 
-          for f in reliability-v46.js reviews-messaging-v47-patch.js business-modal-v47-fix.js transaction-experience-v48.js notifications-v49.js order-push-v50.js agenda-reminders-v51.js; do test -s "issoire-connect/app/$f"; done
+          for f in reliability-v46.js reviews-messaging-v47-patch.js business-modal-v47-fix.js transaction-experience-v48.js notifications-v49.js order-push-v50.js agenda-reminders-v51.js resident-ads-v52.js demo-v52.js; do test -s "issoire-connect/app/$f"; done
           grep -q '4,99 €' issoire-connect/index.html
           grep -q '19,99 €' issoire-connect/index.html
           ! grep -q '9,99 €' issoire-connect/index.html
-          grep -q 'agenda-reminders-v51.js?v=51.0' issoire-connect/app/index.html
-          grep -q 'order-push-v50.js?v=51.0' issoire-connect/app/index.html
-          grep -q 'notifications-v49.js?v=51.0' issoire-connect/app/index.html
-          grep -q 'issoire-connect-v51-agenda-reminders-1' issoire-connect/app/sw.js
-          grep -q 'agenda-reminders-v51.js' issoire-connect/app/sw.js
+          grep -q 'agenda-reminders-v51.js?v=52.0' issoire-connect/app/index.html
+          grep -q 'resident-ads-v52.js?v=52.0' issoire-connect/app/index.html
+          grep -q 'demo-v52.js?v=52.0' issoire-connect/app/index.html
+          grep -q 'issoire-connect-v52-resident-ads-demo-1' issoire-connect/app/sw.js
+          grep -q 'resident-ads-v52.js' issoire-connect/app/sw.js
+          grep -q 'demo-v52.js' issoire-connect/app/sw.js
+          grep -q "\['residents','all'\]" issoire-connect/app/resident-ads-v52.js
+          grep -q 'Voir comme un Habitant' issoire-connect/app/resident-ads-v52.js
+          grep -q '\[1,5,10,20,50\]' issoire-connect/app/resident-ads-v52.js
+          grep -q 'MODE DÉMO' issoire-connect/app/demo-v52.js
+          grep -q 'Profil Habitant' issoire-connect/app/demo-v52.js
+          grep -q 'Pro 360 — 19,99 €/mois' issoire-connect/app/demo-v52.js
+          grep -q "searchParams.set('demo',kind)" issoire-connect/app/demo-v52.js
           grep -q "addEventListener('push'" issoire-connect/app/sw.js
           grep -q 'notificationclick' issoire-connect/app/sw.js
           grep -q 'app-clean/index.html' issoire-connect/app/index.html
@@ -45,8 +53,8 @@ jobs:
           pathlib.Path('/tmp/ic-loader.js').write_text(js)
           PY
           node --check /tmp/ic-loader.js
-          test "$(wc -c < issoire-connect/app/index.html)" -lt 32000
-          echo 'Static V51 validation passed.'
+          test "$(wc -c < issoire-connect/app/index.html)" -lt 34000
+          echo 'Static V52 validation passed.'
 
       - name: Install Chromium
         run: |
@@ -62,19 +70,19 @@ jobs:
       - name: Chromium smoke test local
         run: node tests/issoire-connect-smoke.mjs
 
-      - name: Wait for public GitHub Pages V51 loader
+      - name: Wait for public GitHub Pages V52 loader
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/index.html'
           for i in {1..60}; do
             BODY=$(curl -fsSL -H 'Cache-Control: no-cache' "$URL?deploy=${GITHUB_SHA}" 2>/dev/null || true)
-            if echo "$BODY" | grep -q 'agenda-reminders-v51.js?v=51.0' && echo "$BODY" | grep -q 'order-push-v50.js?v=51.0'; then
-              echo 'Issoire Connect V51 loader is live.'
+            if echo "$BODY" | grep -q 'resident-ads-v52.js?v=52.0' && echo "$BODY" | grep -q 'demo-v52.js?v=52.0'; then
+              echo 'Issoire Connect V52 loader is live.'
               exit 0
             fi
             sleep 5
           done
-          echo 'Public V51 was not detected in time.'
+          echo 'Public V52 was not detected in time.'
           exit 1
 
       - name: Chromium smoke test public
