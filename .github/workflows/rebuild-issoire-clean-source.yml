@@ -5,29 +5,13 @@ on:
     branches: ["main"]
     paths:
       - .github/workflows/rebuild-issoire-clean-source.yml
+      - issoire-connect/app/*.js
       - issoire-connect/app/v3-data-0.txt
       - issoire-connect/app/v3-data-1.txt
       - issoire-connect/app/v3-data-2.txt
       - issoire-connect/app/v3-data-3.txt
-      - issoire-connect/app/*-patch.js
-      - issoire-connect/app/pro-edit-patch.js
-      - issoire-connect/app/auth-flow-patch-v40.js
-      - issoire-connect/app/v40-core-patch.js
-      - issoire-connect/app/radar-prospects-mobile-fix-v40.js
-      - issoire-connect/app/mobile-pro-services-v40.js
-      - issoire-connect/app/legal-v40.js
-      - issoire-connect/app/subscription-v32.js
-      - issoire-connect/app/functional-audit-fix-v41.js
-      - issoire-connect/app/ui-consolidation-v42.js
-      - issoire-connect/app/agenda-v43.js
-      - issoire-connect/app/admin-users-v44.js
-      - issoire-connect/app/admin-owner-v45.js
-      - issoire-connect/app/reliability-v46.js
-      - issoire-connect/app/reviews-messaging-v47-patch.js
-      - issoire-connect/app/business-modal-v47-fix.js
-      - issoire-connect/app/transaction-experience-v48.js
-      - issoire-connect/app/notifications-v49.js
-      - issoire-connect/app/order-push-v50.js
+      - issoire-connect/app/manifest.webmanifest
+      - issoire-connect/app/icon.svg
   workflow_dispatch:
 
 permissions:
@@ -36,31 +20,22 @@ permissions:
 jobs:
   rebuild:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
-      - name: Reconstruct readable V50 source
+      - name: Reconstruct readable V51 source
         shell: bash
         run: |
           set -euo pipefail
           OUT="issoire-connect/app-clean"
           SRC="issoire-connect/app"
           mkdir -p "$OUT"
-
-          for f in pro-edit-patch.js auth-flow-patch-v40.js mobile-pro-services-v40.js functional-audit-fix-v41.js ui-consolidation-v42.js agenda-v43.js admin-users-v44.js admin-owner-v45.js reliability-v46.js reviews-messaging-v47-patch.js business-modal-v47-fix.js transaction-experience-v48.js notifications-v49.js order-push-v50.js; do
-            node --check "$SRC/$f"
-          done
-
-          cat "$SRC"/v3-data-{0,1,2,3}.txt \
-            | tr -d '\r\n\t ' \
-            | base64 -d \
-            | gzip -d > "$OUT/base.html"
-
-          grep -qi '<!doctype html>\|<html' "$OUT/base.html"
-          grep -qi 'Issoire' "$OUT/base.html"
-          test "$(wc -c < "$OUT/base.html")" -gt 10000
 
           FILES=(
             claim-patch.js
@@ -100,93 +75,87 @@ jobs:
             transaction-experience-v48.js
             notifications-v49.js
             order-push-v50.js
+            agenda-reminders-v51.js
           )
+
+          for f in "${FILES[@]}"; do
+            test -s "$SRC/$f"
+            node --check "$SRC/$f"
+          done
+
+          cat "$SRC"/v3-data-{0,1,2,3}.txt | tr -d '\r\n\t ' | base64 -d | gzip -d > "$OUT/base.html"
+          grep -qi '<!doctype html>\|<html' "$OUT/base.html"
+          grep -qi 'Issoire' "$OUT/base.html"
+          test "$(wc -c < "$OUT/base.html")" -gt 10000
 
           : > "$OUT/app-v40.bundle.js"
           for f in "${FILES[@]}"; do
-            test -s "$SRC/$f"
             printf '\n;/* ===== %s ===== */\n' "$f" >> "$OUT/app-v40.bundle.js"
             cat "$SRC/$f" >> "$OUT/app-v40.bundle.js"
             printf '\n' >> "$OUT/app-v40.bundle.js"
           done
-
           node --check "$OUT/app-v40.bundle.js"
 
           python3 - <<'PY'
           from pathlib import Path
-          out = Path('issoire-connect/app-clean')
-          html = (out/'base.html').read_text(encoding='utf-8')
-          marker = '<script src="app-v40.bundle.js?v=50.0-clean"></script>'
-          if '</body>' not in html.lower():
-              raise SystemExit('Missing </body> in reconstructed HTML')
-          pos = html.lower().rfind('</body>')
-          html = html[:pos] + marker + html[pos:]
-          (out/'index.html').write_text(html, encoding='utf-8')
+          out=Path('issoire-connect/app-clean')
+          html=(out/'base.html').read_text(encoding='utf-8')
+          marker='<script src="app-v40.bundle.js?v=51.0-clean"></script>'
+          pos=html.lower().rfind('</body>')
+          if pos<0: raise SystemExit('Missing </body> in reconstructed HTML')
+          (out/'index.html').write_text(html[:pos]+marker+html[pos:],encoding='utf-8')
           PY
 
           cp "$SRC/manifest.webmanifest" "$OUT/manifest.webmanifest"
           cp "$SRC/icon.svg" "$OUT/icon.svg"
 
           cat > "$OUT/sw.js" <<'SW'
-          const CACHE='issoire-connect-v50-clean-1';
+          'use strict';
+          const CACHE='issoire-connect-v51-clean-1';
           const CORE=['./','./index.html','./app-v40.bundle.js','./manifest.webmanifest','./icon.svg'];
-          self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
-          self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-          self.addEventListener('fetch',event=>{
-            if(event.request.method!=='GET') return;
-            event.respondWith(fetch(event.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return r;}).catch(()=>caches.match(event.request).then(r=>r||caches.match('./index.html'))));
-          });
+          self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
+          self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('issoire-connect-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+          self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(u.origin!==self.location.origin)return;if(e.request.mode==='navigate'){e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const cp=r.clone();caches.open(CACHE).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match('./'))))}else{e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const cp=r.clone();caches.open(CACHE).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request)))}});
+          self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch{try{d={body:e.data?.text()||''}}catch{d={}}}const title=d.title||'Issoire Connect';let target='./';try{const u=new URL(d.url||'./',self.location.origin);if(u.origin===self.location.origin)target=u.href}catch{}e.waitUntil(self.registration.showNotification(title,{body:d.body||'',icon:'icon.svg',badge:'icon.svg',tag:d.tag||'issoire-connect',data:{url:target},renotify:false}))});
+          self.addEventListener('notificationclick',e=>{e.notification.close();const target=e.notification?.data?.url||new URL('./',self.location.href).href;e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const c of list){try{if(new URL(c.url).origin===self.location.origin){c.navigate(target);return c.focus()}}catch{}}return clients.openWindow(target)}))});
           SW
 
           cat > "$OUT/README.txt" <<'TXT'
-          Issoire Connect V50 - source consolidee
+          Issoire Connect V51 - source consolidee
 
-          Cette version est reconstruite a partir du HTML V3 compresse et regroupe les scripts fonctionnels dans un bundle unique, dans leur ordre d'execution historique, jusqu'a order-push-v50.js.
-          Elle sert aussi de solution de repli pour les navigateurs qui ne prennent pas en charge DecompressionStream.
-
-          V50 conserve V49 et ajoute le Push securise des changements de statut de commande/reservation, avec notification persistante, anti-double-envoi et lien profond vers la transaction.
-
-          Fichiers principaux :
-          - base.html : HTML V3 decompresse, lisible
-          - index.html : HTML lisible chargeant un seul bundle
-          - app-v40.bundle.js : bundle consolide V50
-          - sw.js : cache PWA propre a la version clean
+          Version lisible et de secours reconstruite depuis le HTML V3 compresse.
+          Elle regroupe les modules jusqu'a agenda-reminders-v51.js dans un bundle unique.
+          V51 conserve les Push de transaction V50 et ajoute les rappels Agenda / reservations planifies, avec deep-link vers le rendez-vous.
+          Le service worker clean gere aussi les Push et notificationclick comme la version principale.
           TXT
 
-      - name: Validate clean architecture
+      - name: Validate clean V51
         shell: bash
         run: |
           set -euo pipefail
           test -s issoire-connect/app-clean/index.html
           test -s issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'app-v40.bundle.js?v=50.0-clean' issoire-connect/app-clean/index.html
+          grep -q 'app-v40.bundle.js?v=51.0-clean' issoire-connect/app-clean/index.html
           ! grep -q 'v3-data-' issoire-connect/app-clean/index.html
-          test "$(grep -o 'app-v40.bundle.js?v=50.0-clean' issoire-connect/app-clean/index.html | wc -l)" -eq 1
           node --check issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'resendIcSignupConfirmation' issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'window.icV42' issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'window.icAgenda' issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'window.icV46Reliability' issoire-connect/app-clean/app-v40.bundle.js
           grep -q 'window.icV47' issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'window.icV47BusinessModalFix' issoire-connect/app-clean/app-v40.bundle.js
           grep -q 'window.icV48' issoire-connect/app-clean/app-v40.bundle.js
           grep -q 'window.icV49' issoire-connect/app-clean/app-v40.bundle.js
           grep -q 'window.icV50' issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'ic_my_transaction_experience' issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'ic_notifications' issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'ic_set_order_status_v50' issoire-connect/app-clean/app-v40.bundle.js
-          grep -q 'ic-send-order-notification-push' issoire-connect/app-clean/app-v40.bundle.js
-          echo "Clean V50 source validated."
+          grep -q 'window.icV51' issoire-connect/app-clean/app-v40.bundle.js
+          grep -q 'reminder_minutes' issoire-connect/app-clean/app-v40.bundle.js
+          grep -q "notificationclick" issoire-connect/app-clean/sw.js
+          echo "Clean V51 source validated."
 
       - name: Upload clean source artifact
         uses: actions/upload-artifact@v4
         with:
-          name: issoire-connect-v50-clean-source
+          name: issoire-connect-v51-clean-source
           path: issoire-connect/app-clean/
           if-no-files-found: error
           retention-days: 30
 
-      - name: Commit generated readable source when allowed
+      - name: Commit generated readable source when changed
         shell: bash
         run: |
           set -euo pipefail
@@ -197,7 +166,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add issoire-connect/app-clean/
-          git commit -m 'Generate consolidated Issoire Connect V50 clean source'
-          if ! git push; then
-            echo 'Push not permitted; artifact remains available for manual promotion.'
-          fi
+          git commit -m 'Generate consolidated Issoire Connect V51 clean source'
+          git push || echo 'Push not permitted; artifact remains available.'
