@@ -3034,3 +3034,117 @@ setTimeout(()=>{if(S.page==='agenda'&&typeof renderIcAgenda==='function')renderI
 window.icV51={version:V,rows,focusAgendaItem,handleDeepLink,reminderLabel};
 })();
 
+
+;/* ===== resident-ads-v52.js ===== */
+(()=>{
+'use strict';
+if(typeof window==='undefined'||typeof S==='undefined'||typeof sb==='undefined')return;
+
+const V='52.0';
+const A={current:null,timer:null,lastPage:null};
+const RESIDENT_PAGES=new Set(['home','search','deals','favorites','directory','classifieds','events','jobs','account']);
+const e52=v=>typeof esc==='function'?esc(String(v??'')):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function geo(){for(const x of [S.residentGeo,S.geo,S.location]){if(x){const lat=Number(x.lat??x.latitude),lon=Number(x.lon??x.lng??x.longitude);if(Number.isFinite(lat)&&Number.isFinite(lon))return{lat,lon}}}try{const x=JSON.parse(localStorage.getItem('ic_resident_geo')||'null');if(x){const lat=Number(x.lat??x.latitude),lon=Number(x.lon??x.lng??x.longitude);if(Number.isFinite(lat)&&Number.isFinite(lon))return{lat,lon}}}catch{}return null}
+function km(a,b,c,d){const R=6371,p=Math.PI/180,x=(c-a)*p,y=(d-b)*p,q=Math.sin(x/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
+function sessionKey(){let k=localStorage.getItem('ic_ad_session');if(!k){k=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));localStorage.setItem('ic_ad_session',k)}return k}
+async function track(id,type){try{await sb.rpc('ic_track_ad_event',{p_campaign_id:id,p_event_type:type,p_session_key:sessionKey()})}catch{}}
+function safeUrl(v){if(!v)return null;try{const u=new URL(/^https?:\/\//i.test(v)?v:'https://'+v);return /^https?:$/.test(u.protocol)?u.href:null}catch{return null}}
+async function businessMap(ids){const out=new Map();for(const b of [...(S.businesses||[]),...(S.myBusinesses||[])])if(ids.includes(b.id))out.set(b.id,b);const missing=ids.filter(x=>!out.has(x));if(missing.length){const{data}=await sb.from('ic_businesses').select('id,name,city,category,latitude,longitude,is_active,owner_id').in('id',missing);for(const b of data||[])out.set(b.id,b)}return out}
+function isResidentSurface(){return RESIDENT_PAGES.has(String(S.page||'home'))}
+function seenKey(id,page){return `ic_ad_seen_v52_${id}_${page||'resident'}`}
+async function chooseResidentAd({ignoreFrequency=false}={}){
+ const nowIso=new Date().toISOString();
+ const{data,error}=await sb.from('ic_ad_campaigns').select('id,business_id,title,image_url,target_url,duration_seconds,frequency_minutes,target_radius_km,target_audience,placement,starts_at,ends_at,is_active').eq('is_active',true).in('target_audience',['residents','all']).lte('starts_at',nowIso).limit(50);
+ if(error)throw error;
+ let rows=(data||[]).filter(a=>!a.ends_at||new Date(a.ends_at)>new Date());
+ if(!rows.length)return null;
+ const map=await businessMap([...new Set(rows.map(r=>r.business_id))]);
+ const g=geo();
+ rows=rows.filter(a=>{const b=map.get(a.business_id);if(!b||b.is_active===false)return false;if(!g)return true;const lat=Number(b.latitude),lon=Number(b.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lon))return true;return km(g.lat,g.lon,lat,lon)<=Number(a.target_radius_km||5)});
+ if(!ignoreFrequency){const now=Date.now(),page=String(S.page||'home');rows=rows.filter(a=>now-Number(localStorage.getItem(seenKey(a.id,page))||0)>=Math.max(1,Number(a.frequency_minutes||5))*60000)}
+ if(!rows.length)return null;
+ rows.sort((a,b)=>(b.placement==='premium'?1:0)-(a.placement==='premium'?1:0)||new Date(b.starts_at||0)-new Date(a.starts_at||0));
+ const a=rows[0];a.business=map.get(a.business_id)||null;return a;
+}
+function adMarkup(a,{preview=false}={}){const b=a.business||{};return `<div class="row between" style="gap:10px"><div><span class="pill">${preview?'👁 APERÇU HABITANT · ':''}${a.placement==='premium'?'⭐ SPONSORISÉ PREMIUM':'📢 SPONSORISÉ'}</span><div class="muted" style="margin-top:5px">Publicité locale ciblée · ${Number(a.target_radius_km||0)} km</div></div>${preview?'':'<button class="btn" style="padding:4px 8px" onclick="document.getElementById(\'icSponsoredAd\')?.remove()">×</button>'}</div>${a.image_url?`<img src="${e52(a.image_url)}" alt="Publicité locale" style="width:100%;max-height:230px;object-fit:cover;border-radius:14px;margin-top:10px" onerror="this.remove()">`:''}<h3 style="margin:11px 0 3px">${e52(a.title||'Offre locale')}</h3><div><b>${e52(b.name||'Professionnel local')}</b>${b.city?` <span class="muted">· ${e52(b.city)}</span>`:''}</div><div class="actions" style="margin-top:11px"><button class="btn brand" onclick="openIcSponsoredAd('${e52(a.id)}')">En savoir plus</button></div>`}
+async function injectResidentAd(force=false){
+ if(!isResidentSurface()||document.querySelector('[data-ic-demo-screen]'))return false;
+ if(typeof main==='undefined'||!main)return false;
+ if(document.getElementById('icSponsoredAd')&&!force)return true;
+ try{
+   const a=await chooseResidentAd({ignoreFrequency:force});if(!a)return false;
+   document.getElementById('icSponsoredAd')?.remove();A.current=a;
+   if(!force)localStorage.setItem(seenKey(a.id,String(S.page||'home')),String(Date.now()));
+   const box=document.createElement('section');box.id='icSponsoredAd';box.className='card';box.style.cssText='margin:12px 0;border:1px solid #ffd2a6;background:linear-gradient(135deg,#fff9f1,#fff)';box.innerHTML=adMarkup(a);
+   const hero=main.querySelector('.hero');if(hero?.nextSibling)hero.parentNode.insertBefore(box,hero.nextSibling);else main.prepend(box);
+   if(!force)track(a.id,'impression');return true;
+ }catch(err){console.warn('IC V52 ad',err);return false}
+}
+window.openIcSponsoredAd=async function(id){
+ let a=A.current?.id===id?A.current:null;
+ if(!a){try{const{data}=await sb.from('ic_ad_campaigns').select('id,business_id,title,image_url,target_url,target_radius_km,target_audience,placement,is_active').eq('id',id).maybeSingle();if(data){const map=await businessMap([data.business_id]);a={...data,business:map.get(data.business_id)}}}catch{}}
+ if(!a)return typeof say==='function'?say('Publicité indisponible.'):null;
+ await track(id,'click');const u=safeUrl(a.target_url);if(u)return window.open(u,'_blank','noopener,noreferrer');
+ const b=a.business;if(b&&typeof viewBusiness==='function'){if(!(S.businesses||[]).some(x=>x.id===b.id))S.businesses.push(b);return viewBusiness(b.id)}
+};
+window.previewIcResidentAd=async function(){
+ try{const a=await chooseResidentAd({ignoreFrequency:true});if(!a)return openModal('<h2>👁 Aperçu Habitant</h2><div class="empty">Aucune campagne Habitant active actuellement.</div>');A.current=a;openModal(`<h2>👁 Voilà ce que voit un Habitant</h2><div class="notice"><b>Aperçu sans tenir compte de la fréquence d’affichage.</b><br>La campagne réelle respecte ensuite son rayon et sa fréquence.</div><article class="card" style="margin-top:12px;border:1px solid #ffd2a6;background:#fffaf3">${adMarkup(a,{preview:true})}</article>`)}catch(err){say(err?.message||String(err))}
+};
+function paidPro360Plan(b){const p=String(b?.plan||'free').toLowerCase();return p==='pro'||p==='proplus'}
+function ownedBusiness(id){return (S.myBusinesses||[]).find(x=>String(x.id)===String(id))||(S.businesses||[]).find(x=>String(x.id)===String(id))||null}
+window.newAd=function(bid){
+ const b=ownedBusiness(bid);if(!b)return typeof say==='function'?say('Entreprise introuvable.'):null;
+ if(!paidPro360Plan(b)&&S.profile?.role!=='admin')return typeof openIcPlans==='function'?openIcPlans():say('La publicité locale est incluse dans Pro 360.');
+ openModal(`<h2>📢 Nouvelle campagne sponsorisée</h2><div class="notice"><b>Pro 360</b> · campagnes standard ou premium · rayon jusqu’à 50 km.</div><div class="form"><label>Titre</label><input id="icaTitle" maxlength="120" placeholder="Votre offre ou message"><label>Image URL — facultatif</label><input id="icaImage" placeholder="https://…"><label>Lien cible — facultatif</label><input id="icaUrl" placeholder="https://…"><label>Audience</label><select id="icaAudience"><option value="residents">Habitants</option><option value="professionals">Professionnels</option><option value="all">Tout le monde</option></select><label>Rayon</label><select id="icaRadius">${[1,5,10,20,50].map(x=>`<option value="${x}" ${x===50?'selected':''}>${x} km</option>`).join('')}</select><label>Placement</label><select id="icaPlacement"><option value="standard">Standard</option><option value="premium">⭐ Premium</option></select><div class="two"><div><label>Durée affichage</label><select id="icaDuration"><option value="10">10 s</option><option value="15" selected>15 s</option><option value="20">20 s</option><option value="30">30 s</option></select></div><div><label>Fréquence par appareil</label><select id="icaFreq"><option value="5">5 min</option><option value="15">15 min</option><option value="30" selected>30 min</option><option value="60">60 min</option></select></div></div><label>Fin de campagne — facultatif</label><input id="icaEnd" type="datetime-local"><button class="btn brand" onclick="saveIcAd('${e52(bid)}')">Lancer la campagne</button></div>`)
+};
+function addPreviewButton(){
+ const tools=document.getElementById('icAdTools');if(!tools)return;
+ const muted=tools.querySelector('.muted');if(muted)muted.textContent='Pro 360 · Standard + premium · jusqu’à 50 km';
+ if(tools.querySelector('[data-ic52-preview]'))return;
+ const actions=tools.querySelector('.actions');if(!actions)return;
+ const btn=document.createElement('button');btn.className='btn';btn.dataset.ic52Preview='1';btn.textContent='👁 Voir comme un Habitant';btn.onclick=()=>previewIcResidentAd();actions.appendChild(btn)
+}
+const baseGo=window.go;
+if(typeof baseGo==='function')window.go=function(page,...args){const r=baseGo.call(this,page,...args);clearTimeout(A.timer);A.timer=setTimeout(()=>{addPreviewButton();injectResidentAd(false)},520);return r};
+const observer=new MutationObserver(()=>{addPreviewButton();if(isResidentSurface()&&!document.getElementById('icSponsoredAd')&&!document.querySelector('[data-ic-demo-screen]')){clearTimeout(A.timer);A.timer=setTimeout(()=>injectResidentAd(false),650)}});
+if(typeof main!=='undefined'&&main)observer.observe(main,{childList:true,subtree:false});
+setTimeout(()=>{addPreviewButton();injectResidentAd(false)},800);
+window.icV52Ads={version:V,chooseResidentAd,injectResidentAd,preview:window.previewIcResidentAd};
+})();
+// V52 clean-source regeneration anchor
+
+
+;/* ===== demo-v52.js ===== */
+(()=>{
+'use strict';
+if(typeof window==='undefined'||typeof S==='undefined')return;
+const V='52.0';
+const e52=v=>typeof esc==='function'?esc(String(v??'')):String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+function adMarkup(a,{preview=false}={}){const b=a.business||{};return `<div class="row between"><div><span class="pill">${preview?'👁 APERÇU HABITANT · ':''}${a.placement==='premium'?'⭐ SPONSORISÉ PREMIUM':'📢 SPONSORISÉ'}</span><div class="muted" style="margin-top:5px">Publicité locale ciblée · ${Number(a.target_radius_km||0)} km</div></div></div><h3 style="margin:11px 0 3px">${e52(a.title||'Offre locale')}</h3><div><b>${e52(b.name||'Professionnel local')}</b>${b.city?` <span class="muted">· ${e52(b.city)}</span>`:''}</div>`}
+const DEMO_AD={id:'demo-ad',business_id:'demo-pro',title:'Diagnostic énergie offert pour toute demande de devis',target_radius_km:20,target_audience:'residents',placement:'premium',business:{id:'demo-pro',name:'Atelier Local Démo',city:'Issoire',category:'Rénovation'}};
+function demoHeader(kind){return `<div data-ic-demo-screen="${kind}" class="demohero" style="position:relative"><span class="pill" style="background:#fff;color:#123d73">🎬 MODE DÉMO · DONNÉES FICTIVES</span><h2 style="margin-top:10px">${kind==='resident'?'👤 Profil Habitant — Camille Démo':'🚀 Profil Pro 360 — Atelier Local Démo'}</h2><p style="margin:4px 0 0;opacity:.92">Issoire · démonstration commerciale sans compte réel ni écriture en base.</p></div>`}
+function demoNav(){return `<div class="actions" style="margin:0 0 12px"><button class="btn" onclick="openDemoHub()">🎬 Menu Démo</button><button class="btn" onclick="openIc52AdStory()">🔄 Scénario Pub Pro → Habitant</button></div>`}
+window.openIc52ResidentDemo=function(){
+ openModal(`${demoHeader('resident')}${demoNav()}<div class="kpis"><div class="kpi"><small class="muted">Rayon</small><strong>10 km</strong></div><div class="kpi"><small class="muted">Favoris</small><strong>6</strong></div><div class="kpi"><small class="muted">Avantages</small><strong>12</strong></div><div class="kpi"><small class="muted">Agenda</small><strong>2</strong></div></div><h3>🏠 Mon accueil local</h3><div class="gridmenu"><button class="tile" onclick="openIc52DemoRadar()"><span>📡</span><b>Radar</b></button><button class="tile" onclick="openIc52DemoNeeds()"><span>📣</span><b>Mon besoin</b></button><button class="tile" onclick="openIc52DemoDeals()"><span>🎁</span><b>Avantages</b></button><button class="tile" onclick="openIc52DemoAgenda()"><span>🗓️</span><b>Agenda</b></button></div><h3 style="margin-top:16px">📢 Publicité locale visible par l’habitant</h3><article class="card" style="border:1px solid #ffd2a6;background:linear-gradient(135deg,#fff7ec,#fff)">${adMarkup(DEMO_AD,{preview:true})}</article><h3 style="margin-top:16px">🔥 Près de chez moi</h3><div class="cards"><article class="card"><span class="pill">🎁 AVANTAGE IC</span><h3>-10 % sur un contrôle vélo</h3><div class="muted">Cycle Démo · 1,2 km</div></article><article class="card"><span class="pill">💼 EMPLOI</span><h3>Employé polyvalent</h3><div class="muted">Commerce Démo · Issoire</div></article><article class="card"><span class="pill">📅 ÉVÉNEMENT</span><h3>Marché des créateurs</h3><div class="muted">Samedi · centre-ville</div></article></div>`);
+};
+window.openIc52ProDemo=function(){
+ openModal(`${demoHeader('pro')}${demoNav()}<div class="notice"><b>Pro 360 — 19,99 €/mois</b><br>4,99 € pour être trouvé. 19,99 € pour trouver des clients.</div><div class="kpis" style="margin-top:12px"><div class="kpi"><small class="muted">Prospects</small><strong>18</strong></div><div class="kpi"><small class="muted">Besoins confirmés</small><strong>4</strong></div><div class="kpi"><small class="muted">Campagnes</small><strong>1</strong></div><div class="kpi"><small class="muted">Avis</small><strong>4,8★</strong></div></div><h3>Tableau de bord Pro</h3><div class="demolist"><button class="democard" onclick="openIc52DemoProspects()"><div class="big">🎯</div><h3>Radar Prospects</h3><p>Détecter les besoins locaux compatibles.</p></button><button class="democard" onclick="openIc52DemoPipeline()"><div class="big">📌</div><h3>Suivi commercial</h3><p>Prospects, relances et statuts.</p></button><button class="democard" onclick="openIc52DemoCampaign()"><div class="big">📣</div><h3>Mes campagnes</h3><p>Créer une publicité ciblée Habitants.</p></button><button class="democard" onclick="openIc52DemoServices()"><div class="big">🛍️</div><h3>Produits & services</h3><p>Prestations, tarifs et devis.</p></button></div><h3 style="margin-top:16px">📣 Campagne Démo active</h3><article class="card" style="border-left:4px solid #f47721"><span class="pill">⭐ PREMIUM · HABITANTS · 20 KM</span><h3>${e52(DEMO_AD.title)}</h3><p class="muted">Cette campagne est ensuite visible dans le parcours Habitant.</p><div class="row" style="gap:18px"><b>1 248 impressions</b><b>63 clics</b><b>CTR 5,05 %</b></div><div class="actions"><button class="btn brand" onclick="openIc52ResidentDemo()">👁 Voir le résultat côté Habitant</button></div></article>`);
+};
+window.openIc52AdStory=function(){
+ openModal(`<div class="demohero"><span class="pill" style="background:#fff;color:#123d73">🎬 DÉMO COMMERCIALE</span><h2 style="margin-top:10px">🔄 Du Pro jusqu’à l’Habitant</h2><p style="margin:0;opacity:.92">La démonstration montre exactement où va une publicité créée par un professionnel.</p></div><div class="demoflow"><div class="demostep"><b>1</b><div><strong>Le Pro crée sa campagne</strong><br><span class="muted">Audience : Habitants · rayon : 20 km · placement Premium.</span></div></div><div class="demostep"><b>2</b><div><strong>Issoire Connect cible localement</strong><br><span class="muted">La campagne respecte le rayon, les dates et la fréquence.</span></div></div><div class="demostep"><b>3</b><div><strong>L’Habitant voit “SPONSORISÉ”</strong><br><span class="muted">Accueil, recherche, bons plans, annuaire, annonces et compte habitant peuvent recevoir une insertion.</span></div></div><div class="demostep"><b>4</b><div><strong>Le clic est mesuré</strong><br><span class="muted">Impressions, clics et CTR remontent au professionnel.</span></div></div></div><article class="card" style="border:1px solid #ffd2a6;background:#fffaf3">${adMarkup(DEMO_AD,{preview:true})}</article><div class="actions"><button class="btn brand" onclick="openIc52ProDemo()">🚀 Voir le profil Pro</button><button class="btn" onclick="openIc52ResidentDemo()">👤 Voir le profil Habitant</button></div>`);
+};
+window.openIc52DemoRadar=()=>openModal(`${demoHeader('resident')}${demoNav()}<h2>📡 Radar</h2><div class="card"><b>Plombier Démo</b><div class="muted">1,8 km · 4,9★ · répond généralement en moins d’1 h</div><div class="actions"><button class="btn brand">Voir la fiche</button><button class="btn">❤️ Favori</button></div></div>`);
+window.openIc52DemoNeeds=()=>openModal(`${demoHeader('resident')}${demoNav()}<h2>📣 Mon besoin</h2><div class="notice">Exemple : « Je cherche quelqu’un pour refaire ma salle de bain. »</div><div class="demoresult"><b>Publié gratuitement.</b><br>Les Pros 360 compatibles pourront le voir comme 🔥 Besoin confirmé, sans exposer vos données privées.</div>`);
+window.openIc52DemoDeals=()=>openModal(`${demoHeader('resident')}${demoNav()}<h2>🎁 Avantages IC</h2><div class="cards"><article class="card"><b>Café offert</b><div class="muted">Restaurant Démo</div></article><article class="card"><b>-5 €</b><div class="muted">Coiffeur Démo</div></article></div>`);
+window.openIc52DemoAgenda=()=>openModal(`${demoHeader('resident')}${demoNav()}<h2>🗓️ Mon agenda privé</h2><div class="card"><b>Demain · 14:30</b><p>Rendez-vous devis rénovation</p><span class="pill">Rappel 1 h avant</span></div>`);
+window.openIc52DemoProspects=()=>openModal(`${demoHeader('pro')}${demoNav()}<h2>🎯 Radar Prospects</h2><article class="card" style="border-left:4px solid #f47721"><span class="pill">🔥 BESOIN CONFIRMÉ · 94 %</span><h3>Rénovation salle de bain</h3><div class="muted">Issoire · 2,4 km</div><div class="actions"><button class="btn brand">Ajouter aux prospects</button><button class="btn">Contacter</button></div></article><article class="card"><span class="pill">🔵 CIBLE COMPATIBLE · 82 %</span><h3>Projet rénovation locale</h3><div class="muted">Pas de besoin confirmé</div></article>`);
+window.openIc52DemoPipeline=()=>openModal(`${demoHeader('pro')}${demoNav()}<h2>📌 Suivi commercial</h2><div class="cards"><article class="card"><span class="pill">NOUVEAU</span><h3>Salle de bain</h3></article><article class="card"><span class="pill">CONTACTÉ</span><h3>Isolation combles</h3></article><article class="card"><span class="pill">DEVIS</span><h3>Peinture façade</h3></article></div>`);
+window.openIc52DemoCampaign=()=>openModal(`${demoHeader('pro')}${demoNav()}<h2>📣 Créer une campagne</h2><div class="form"><label>Titre</label><input value="${e52(DEMO_AD.title)}" disabled><label>Audience</label><input value="Habitants" disabled><label>Rayon</label><input value="20 km" disabled><label>Placement</label><input value="Premium" disabled></div><div class="actions"><button class="btn brand" onclick="openIc52ResidentDemo()">▶ Simuler la publication et voir côté Habitant</button></div>`);
+window.openIc52DemoServices=()=>openModal(`${demoHeader('pro')}${demoNav()}<h2>🛍️ Mes prestations</h2><div class="cards"><article class="card"><h3>Diagnostic rénovation</h3><div class="price">Sur devis</div><span class="pill">Chez le client</span></article><article class="card"><h3>Étude énergétique</h3><div class="price">89,00 €</div><span class="pill">Particuliers + Pros</span></article></div>`);
+window.copyIc52DemoLink=async function(kind){const u=new URL(location.href);u.searchParams.set('demo',kind);try{await navigator.clipboard.writeText(u.href);say('Lien Démo copié.')}catch{openModal(`<h2>Lien Démo</h2><input value="${e52(u.href)}" style="width:100%;padding:10px">`)}};
+window.openDemoHub=function(){openModal(`<div class="demohero"><span class="pill" style="background:#fff;color:#123d73">🎬 PRÉSENTATION SANS COMPTE</span><h2 style="margin-top:10px">Issoire Connect — Mode Démo</h2><p style="margin:0;opacity:.92">Choisissez le public à qui vous présentez l’application. Toutes les données affichées ci-dessous sont fictives.</p></div><div class="demolist"><button class="democard" onclick="openIc52ResidentDemo()"><div class="big">👤</div><h3>Démo Habitant</h3><p>Radar, besoins, avantages, annonces, agenda et publicité locale.</p><span class="pill">Présenter à un particulier</span></button><button class="democard" onclick="openIc52ProDemo()"><div class="big">🚀</div><h3>Démo Pro 360</h3><p>Radar Prospects, CRM, prestations, avantages et campagnes sponsorisées.</p><span class="pill">Présenter à un professionnel</span></button></div><button class="democard" style="width:100%;margin-top:10px" onclick="openIc52AdStory()"><div class="big">🔄</div><h3>Scénario Pub : Pro → Habitant</h3><p>Montrez où apparaît concrètement une campagne professionnelle.</p></button><div class="actions"><button class="btn" onclick="copyIc52DemoLink('resident')">🔗 Copier lien Démo Habitant</button><button class="btn" onclick="copyIc52DemoLink('pro')">🔗 Copier lien Démo Pro</button><button class="btn" onclick="copyIc52DemoLink('ads')">🔗 Copier lien Démo Pub</button></div>`)};
+async function launchQueryDemo(){const kind=new URLSearchParams(location.search).get('demo');if(!kind)return;for(let i=0;i<20;i++){if(typeof openModal==='function'){if(kind==='resident')openIc52ResidentDemo();else if(kind==='pro')openIc52ProDemo();else if(kind==='ads')openIc52AdStory();else openDemoHub();return}await wait(150)}}
+setTimeout(launchQueryDemo,800);
+window.icV52Demo={version:V,openResident:window.openIc52ResidentDemo,openPro:window.openIc52ProDemo,openAds:window.openIc52AdStory};
+})();
