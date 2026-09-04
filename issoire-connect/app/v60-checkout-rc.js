@@ -80,7 +80,7 @@
     previousProProfileV60();
     const mini=main.querySelector('.v59-mini');
     if(mini) mini.textContent='V.60 RC : Checkout Stripe actif en environnement TEST uniquement. Aucun encaissement réel n’est activé.';
-    main.insertAdjacentHTML('beforeend',`<div class="card soft"><span class="v60-badge">V.60 RC</span><h3>✅ Chaîne abonnement testée côté application</h3><p class="muted">Choix formule → Checkout Stripe TEST → webhook signé → ic_subscriptions → droits Essentiel / Pro / Pro+ → portail client.</p></div>`);
+    main.insertAdjacentHTML('beforeend',`<div class="card soft"><span class="v60-badge">V.60 RC</span><h3>✅ Chaîne abonnement V.60 RC prête</h3><p class="muted">Le backend Checkout TEST, le webhook et les droits de formule sont vérifiés. Le dernier test utilisateur consiste à effectuer un Checkout avec une carte Stripe TEST depuis une session connectée.</p></div>`);
   };
 
   const previousInstallAppV60=installApp;
