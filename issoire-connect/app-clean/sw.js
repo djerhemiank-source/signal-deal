@@ -1,8 +1,8 @@
-const CACHE='issoire-connect-v50-clean-1';
+'use strict';
+const CACHE='issoire-connect-v51-clean-1';
 const CORE=['./','./index.html','./app-v40.bundle.js','./manifest.webmanifest','./icon.svg'];
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',event=>{
-  if(event.request.method!=='GET') return;
-  event.respondWith(fetch(event.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return r;}).catch(()=>caches.match(event.request).then(r=>r||caches.match('./index.html'))));
-});
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('issoire-connect-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(u.origin!==self.location.origin)return;if(e.request.mode==='navigate'){e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const cp=r.clone();caches.open(CACHE).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match('./'))))}else{e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const cp=r.clone();caches.open(CACHE).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request)))}});
+self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch{try{d={body:e.data?.text()||''}}catch{d={}}}const title=d.title||'Issoire Connect';let target='./';try{const u=new URL(d.url||'./',self.location.origin);if(u.origin===self.location.origin)target=u.href}catch{}e.waitUntil(self.registration.showNotification(title,{body:d.body||'',icon:'icon.svg',badge:'icon.svg',tag:d.tag||'issoire-connect',data:{url:target},renotify:false}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();const target=e.notification?.data?.url||new URL('./',self.location.href).href;e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const c of list){try{if(new URL(c.url).origin===self.location.origin){c.navigate(target);return c.focus()}}catch{}}return clients.openWindow(target)}))});
