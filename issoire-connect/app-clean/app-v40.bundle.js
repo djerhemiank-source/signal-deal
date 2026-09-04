@@ -2743,6 +2743,7 @@ const P={handling:false,handled:false};
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STATUS={pending:'En attente',accepted:'Acceptée',ready:'Prête',completed:'Terminée',cancelled:'Annulée'};
 const statusLabel=v=>window.icV48?.statusLabel?.(v)||STATUS[v]||v||'—';
+// Push deep link attendu : ?notification=order&id=<order_uuid>&notification_id=<notification_uuid>
 
 function friendlyOrderError(err){
  const m=String(err?.message||err||'');
