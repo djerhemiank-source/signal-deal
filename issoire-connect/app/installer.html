@@ -1,1 +1,118 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#123d73"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Issoire Connect"><link rel="manifest" href="manifest.webmanifest?v=63.1"><link rel="icon" href="icon-192.svg"><title>Installer Issoire Connect</title><meta name="description" content="Installez Issoire Connect sur votre téléphone."><style>body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f5f7fb;color:#172033;display:grid;place-items:center}.card{width:min(560px,calc(100% - 32px));box-sizing:border-box;background:#fff;border:1px solid #e1e6ee;border-radius:24px;padding:30px;box-shadow:0 16px 42px rgba(18,61,115,.12);text-align:center}.logo{width:76px;height:76px;margin:auto;border-radius:22px;display:grid;place-items:center;background:linear-gradient(135deg,#123d73,#256cab);color:#fff;font-size:25px;font-weight:900}.btn{width:100%;box-sizing:border-box;border:0;border-radius:14px;padding:15px 18px;margin-top:14px;font:inherit;font-weight:850;cursor:pointer}.primary{background:#123d73;color:#fff}.secondary{background:#eef3f8;color:#123d73}.muted{color:#697386;line-height:1.5}.help{margin-top:18px;padding:15px;border-radius:14px;background:#f6f8fb;text-align:left;line-height:1.55}.ok{color:#13795b;font-weight:800}.warn{color:#9a5b00;font-weight:800}.ready{box-shadow:0 0 0 4px rgba(18,61,115,.14)}.modal{position:fixed;inset:0;background:rgba(8,18,32,.58);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}.modal.open{display:flex}.sheet{width:min(520px,100%);background:#fff;border-radius:22px;padding:24px;box-sizing:border-box;text-align:left}.sheet h2{margin-top:0}.sheet .btn{margin-top:18px}</style></head><body><main class="card"><div class="logo">IC</div><h1>Installer Issoire Connect</h1><p class="muted">L’application locale d’Issoire directement sur votre écran d’accueil.</p><button id="installBtn" class="btn primary">📲 Installer Issoire Connect</button><button id="openBtn" class="btn secondary">Ouvrir l’application</button><div id="status" class="help"><b>Installation :</b><br>Votre téléphone vérifie si l’installation directe est disponible.</div></main><div id="modal" class="modal" role="dialog" aria-modal="true"><div class="sheet"><h2 id="modalTitle">Installation</h2><div id="modalBody"></div><button id="closeModal" class="btn secondary">Fermer</button></div></div><script>const APP='./?v=63.0';let deferredPrompt=null;let ready=false;const btn=document.getElementById('installBtn'),status=document.getElementById('status'),modal=document.getElementById('modal'),modalTitle=document.getElementById('modalTitle'),modalBody=document.getElementById('modalBody');function isiOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)}function isAndroid(){return /android/i.test(navigator.userAgent)}function isChromium(){return /chrome|crios|edg|samsungbrowser/i.test(navigator.userAgent)&&!/firefox|fxios/i.test(navigator.userAgent)}function standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}function showModal(title,html){modalTitle.textContent=title;modalBody.innerHTML=html;modal.classList.add('open')}function hideModal(){modal.classList.remove('open')}document.getElementById('closeModal').onclick=hideModal;modal.addEventListener('click',e=>{if(e.target===modal)hideModal()});window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;ready=true;btn.textContent='📲 Installer maintenant';btn.classList.add('ready');status.innerHTML='<span class="ok">✅ Installation prête. Appuyez sur « Installer maintenant ».</span>'});window.addEventListener('appinstalled',()=>{deferredPrompt=null;ready=false;btn.textContent='✅ Issoire Connect est installé';btn.disabled=true;status.innerHTML='<span class="ok">Installation terminée. L’icône Issoire Connect est sur votre écran d’accueil.</span>'});async function init(){if('serviceWorker'in navigator){try{const r=await navigator.serviceWorker.register('sw.js?v=63.1-20260906',{scope:'./',updateViaCache:'none'});await r.update()}catch(e){console.warn('service worker',e)}}if(standalone()){btn.textContent='✅ Issoire Connect est déjà installé';btn.disabled=true;status.innerHTML='<span class="ok">L’application est déjà installée sur cet appareil.</span>';return}if(isiOS()){btn.textContent='📲 Installer sur iPhone / iPad';status.innerHTML='<b>iPhone / iPad :</b><br>L’installation passe par le menu Partager du navigateur.';return}if(isAndroid()){status.innerHTML='<b>Android :</b><br>Chrome prépare l’installation. Dès qu’elle est autorisée, le bouton affichera <b>« Installer maintenant »</b>.';setTimeout(()=>{if(!ready&&!standalone())status.innerHTML='<span class="warn">Installation directe pas encore proposée par le navigateur.</span><br>Appuyez sur le bouton : je vous indique immédiatement la méthode de secours.'},4000)}}btn.addEventListener('click',async()=>{if(standalone())return;if(deferredPrompt){try{await deferredPrompt.prompt();const choice=await deferredPrompt.userChoice;deferredPrompt=null;ready=false;btn.classList.remove('ready');if(choice.outcome==='accepted'){status.innerHTML='<span class="ok">Installation acceptée. L’icône va apparaître sur votre appareil.</span>';btn.textContent='Installation en cours…'}else{status.innerHTML='Installation annulée. Vous pourrez recommencer quand vous voulez.';btn.textContent='📲 Réessayer d’installer'}}catch(e){showModal('Installation',`Le navigateur n’a pas pu ouvrir la fenêtre d’installation.<br><br><b>Android :</b> ouvrez le menu <b>⋮</b> puis choisissez <b>Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.`)}return}if(isiOS()){showModal('Installer sur iPhone / iPad','1. Ouvrez cette page dans <b>Safari</b> ou votre navigateur iOS.<br>2. Touchez <b>Partager</b> ⬆️.<br>3. Choisissez <b>Sur l’écran d’accueil</b>.<br>4. Touchez <b>Ajouter</b>.');return}if(isAndroid()){showModal('Installer sur Android',`Le navigateur n’a pas encore fourni l’installation automatique.<br><br><b>Méthode immédiate :</b><br>1. Touchez le menu <b>⋮</b> en haut à droite de Chrome.<br>2. Choisissez <b>Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.<br>3. Confirmez <b>Installer</b>.<br><br>Si l’option n’apparaît pas encore, gardez cette page ouverte quelques instants puis retouchez le bouton.`);return}showModal('Installer Issoire Connect','Dans le menu de votre navigateur, choisissez <b>Installer l’application</b>, <b>Apps → Installer ce site comme application</b> ou <b>Ajouter à l’écran d’accueil</b>, selon votre navigateur.')} );document.getElementById('openBtn').addEventListener('click',()=>location.href=APP);init();</script></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123d73">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Issoire Connect">
+<link rel="manifest" href="manifest.webmanifest?v=64.0">
+<link rel="icon" href="icon-192.svg">
+<title>Installer Issoire Connect</title>
+<meta name="description" content="Installez Issoire Connect sur Android, iPhone, iPad ou ordinateur.">
+<style>
+:root{--navy:#123d73;--blue:#256cab;--bg:#f5f7fb;--ink:#172033;--muted:#697386;--line:#e1e6ee;--ok:#13795b;--warn:#9a5b00}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);display:grid;place-items:center;padding:16px}
+.card{width:min(580px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 16px 42px rgba(18,61,115,.12);text-align:center}
+.logo{width:78px;height:78px;margin:auto;border-radius:22px;display:grid;place-items:center;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-size:25px;font-weight:900}
+h1{margin:16px 0 6px}.muted{color:var(--muted);line-height:1.5}.btn{width:100%;border:0;border-radius:14px;padding:15px 18px;margin-top:12px;font:inherit;font-weight:850;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px}
+.primary{background:var(--navy);color:#fff}.secondary{background:#eef3f8;color:var(--navy)}.ghost{background:#fff;color:var(--navy);border:1px solid var(--line)}.help{margin-top:18px;padding:16px;border-radius:14px;background:#f6f8fb;text-align:left;line-height:1.55}
+.ok{color:var(--ok);font-weight:800}.warn{color:var(--warn);font-weight:800}.ready{box-shadow:0 0 0 4px rgba(18,61,115,.14)}.badge{display:inline-flex;margin-top:12px;padding:6px 10px;border-radius:999px;background:#eef3f8;color:var(--navy);font-size:12px;font-weight:800}
+.modal{position:fixed;inset:0;background:rgba(8,18,32,.58);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}.modal.open{display:flex}.sheet{width:min(520px,100%);background:#fff;border-radius:22px;padding:24px;text-align:left}.sheet h2{margin-top:0}.small{font-size:12px;color:var(--muted);margin-top:12px}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="logo">IC</div>
+  <h1>Installer Issoire Connect</h1>
+  <p class="muted">L’application locale d’Issoire, directement sur votre écran d’accueil.</p>
+  <span id="envBadge" class="badge">Détection du navigateur…</span>
+  <button id="primaryBtn" class="btn primary">📲 Préparer l’installation</button>
+  <button id="openBtn" class="btn secondary">Ouvrir Issoire Connect</button>
+  <button id="copyBtn" class="btn ghost">🔗 Copier le lien d’installation</button>
+  <div id="status" class="help"><b>Installation :</b><br>Vérification de votre téléphone et de votre navigateur…</div>
+  <div class="small">V.64 • Installation & mobile</div>
+</main>
+<div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="sheet">
+    <h2 id="modalTitle">Installation</h2>
+    <div id="modalBody"></div>
+    <button id="closeModal" class="btn secondary">Fermer</button>
+  </div>
+</div>
+<script>
+const INSTALL_URL='https://djerhemiank-source.github.io/signal-deal/issoire-connect/app/installer.html?v=64.0';
+const APP_URL='./?v=64.0';
+let deferredPrompt=null, installReady=false;
+const ua=navigator.userAgent||'';
+const primary=document.getElementById('primaryBtn');
+const status=document.getElementById('status');
+const badge=document.getElementById('envBadge');
+const modal=document.getElementById('modal');
+const modalTitle=document.getElementById('modalTitle');
+const modalBody=document.getElementById('modalBody');
+function isiOS(){return /iphone|ipad|ipod/i.test(ua)}
+function isAndroid(){return /android/i.test(ua)}
+function isMessenger(){return /FBAN\/Messenger|MessengerForiOS|FB_IAB\/MESSENGER|MESSENGER/i.test(ua)}
+function isFacebook(){return /FBAN|FBAV|FB_IAB|FB4A|FBMD/i.test(ua)}
+function isInstagram(){return /Instagram/i.test(ua)}
+function isWebView(){return /\bwv\b/i.test(ua)||/; wv\)/i.test(ua)||/\bWebView\b/i.test(ua)}
+function isInApp(){return isMessenger()||isFacebook()||isInstagram()||isWebView()}
+function isChromium(){return /Chrome|CriOS|EdgA|EdgiOS|Edg|SamsungBrowser/i.test(ua)&&!/Firefox|FxiOS/i.test(ua)}
+function standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
+function showModal(title,html){modalTitle.textContent=title;modalBody.innerHTML=html;modal.classList.add('open')}
+function hideModal(){modal.classList.remove('open')}
+function setBadge(t){badge.textContent=t}
+function androidChromeIntent(){
+  const hostPath='djerhemiank-source.github.io/signal-deal/issoire-connect/app/installer.html?v=64.0';
+  const fallback=encodeURIComponent(INSTALL_URL);
+  return `intent://${hostPath}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
+}
+function inAppHelp(){
+  if(isAndroid()){
+    setBadge('Messenger/Facebook • navigateur intégré');
+    primary.textContent='🌐 Ouvrir dans Chrome pour installer';
+    status.innerHTML='<span class="warn">Le navigateur intégré de Messenger/Facebook ne propose généralement pas l’installation PWA.</span><br>Appuyez sur <b>« Ouvrir dans Chrome »</b>, puis installez depuis Chrome.';
+    return;
+  }
+  if(isiOS()){
+    setBadge('Messenger/Facebook • navigateur intégré');
+    primary.textContent='🧭 Ouvrir dans le navigateur puis installer';
+    status.innerHTML='<span class="warn">Vous êtes dans le navigateur intégré.</span><br>Dans le menu <b>⋯</b> de Messenger/Facebook, choisissez <b>Ouvrir dans le navigateur</b>. Ensuite utilisez <b>Partager ⬆️ → Sur l’écran d’accueil</b>.';
+  }
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;installReady=true;primary.textContent='📲 Installer maintenant';primary.classList.add('ready');status.innerHTML='<span class="ok">✅ Votre navigateur est prêt. Appuyez sur « Installer maintenant ».</span>';
+});
+window.addEventListener('appinstalled',()=>{
+  deferredPrompt=null;installReady=false;primary.textContent='✅ Issoire Connect est installé';primary.disabled=true;status.innerHTML='<span class="ok">Installation terminée. L’icône Issoire Connect est sur votre appareil.</span>';
+});
+async function init(){
+  if('serviceWorker' in navigator){try{const r=await navigator.serviceWorker.register('sw.js?v=64.0-20260906',{scope:'./',updateViaCache:'none'});await r.update();if(r.waiting)r.waiting.postMessage('SKIP_WAITING')}catch(e){console.warn('service worker',e)}}
+  if(standalone()){setBadge('Application déjà installée');primary.textContent='✅ Issoire Connect est déjà installé';primary.disabled=true;status.innerHTML='<span class="ok">L’application est déjà installée sur cet appareil.</span>';return}
+  if(isInApp()){inAppHelp();return}
+  if(isiOS()){setBadge('iPhone / iPad');primary.textContent='📲 Voir comment installer sur iPhone/iPad';status.innerHTML='<b>iPhone / iPad :</b><br>Utilisez le menu <b>Partager ⬆️</b>, puis <b>Sur l’écran d’accueil</b> et <b>Ajouter</b>.';return}
+  if(isAndroid()){setBadge(isChromium()?'Android • navigateur compatible':'Android');primary.textContent='📲 Préparer l’installation';status.innerHTML='<b>Android :</b><br>Votre navigateur vérifie l’installation. Si la fenêtre directe devient disponible, le bouton passera automatiquement à <b>« Installer maintenant »</b>.';setTimeout(()=>{if(!installReady&&!standalone())status.innerHTML='<span class="warn">La fenêtre automatique n’est pas encore disponible.</span><br>Vous pouvez quand même installer : menu <b>⋮ → Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.'},2500);return}
+  setBadge('Ordinateur');status.innerHTML='Sur Chrome ou Edge, utilisez le bouton d’installation dans la barre d’adresse ou le menu du navigateur.';
+}
+primary.addEventListener('click',async()=>{
+  if(standalone())return;
+  if(isInApp()){
+    if(isAndroid()){location.href=androidChromeIntent();setTimeout(()=>showModal('Ouvrir dans Chrome','Si Chrome ne s’ouvre pas automatiquement, utilisez le menu <b>⋯</b> de Messenger/Facebook puis choisissez <b>Ouvrir dans le navigateur</b>.'),1200)}
+    else{showModal('Sortir de Messenger/Facebook','1. Touchez le menu <b>⋯</b> de Messenger/Facebook.<br>2. Choisissez <b>Ouvrir dans le navigateur</b>.<br>3. Dans le navigateur, utilisez <b>Partager ⬆️ → Sur l’écran d’accueil</b>.')}
+    return;
+  }
+  if(deferredPrompt){try{await deferredPrompt.prompt();const choice=await deferredPrompt.userChoice;deferredPrompt=null;installReady=false;primary.classList.remove('ready');if(choice.outcome==='accepted'){primary.textContent='Installation en cours…';status.innerHTML='<span class="ok">Installation acceptée. L’icône va apparaître sur votre appareil.</span>'}else{primary.textContent='📲 Réessayer d’installer';status.innerHTML='Installation annulée. Vous pouvez recommencer quand vous voulez.'}}catch(e){showModal('Installation','Le navigateur n’a pas pu ouvrir la fenêtre automatique. Utilisez son menu puis <b>Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.')}return}
+  if(isiOS()){showModal('Installer sur iPhone / iPad','1. Touchez <b>Partager ⬆️</b>.<br>2. Choisissez <b>Sur l’écran d’accueil</b>.<br>3. Touchez <b>Ajouter</b>.');return}
+  if(isAndroid()){showModal('Installer sur Android','1. Ouvrez le menu <b>⋮</b> du navigateur.<br>2. Choisissez <b>Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.<br>3. Confirmez l’installation.');return}
+  showModal('Installer Issoire Connect','Dans Chrome ou Edge, cliquez sur l’icône d’installation dans la barre d’adresse ou utilisez le menu du navigateur.');
+});
+document.getElementById('openBtn').addEventListener('click',()=>location.href=APP_URL);
+document.getElementById('copyBtn').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(INSTALL_URL);status.innerHTML='<span class="ok">✅ Lien copié. Vous pouvez maintenant le coller dans Messenger, SMS ou WhatsApp.</span>'}catch(e){showModal('Copier le lien',`Copiez cette adresse :<br><br><b>${INSTALL_URL}</b>`)}});
+document.getElementById('closeModal').onclick=hideModal;
+modal.addEventListener('click',e=>{if(e.target===modal)hideModal()});
+init();
+</script>
+</body>
+</html>
